@@ -29,3 +29,30 @@ class Sprites(PluginBase):
 
     def _process(self, scratch):
         return '<p>{0}</p>'.format(len(scratch.stage.sprites))
+
+
+class BlockTypes(PluginBase):
+    """Produces a count of each type of block contained in a scratch file."""
+
+    def __init__(self, batch):
+        super(BlockTypes, self).__init__(name='Basic Block Types', batch=batch)
+
+    def _process(self, scratch):
+        block_types = {}
+        length = 0
+        for x in scratch.stage.sprites:
+            for y in x.scripts:
+                for z in y.blocks:
+                    if (z.name not in block_types):
+                        block_types[z.name] = 1
+                        if (len(z.name)> length):
+                            length = len(z.name)
+                    else:
+                        block_types[z.name] = block_types[z.name] + 1
+        length = length + 5
+        p = ""
+        keys =  sorted(block_types, key=block_types.__getitem__, reverse=True)
+        for b in keys:
+            p = p + "{1:{2}} {0}".format(str(block_types[b]), b, length)
+            p = p + "\n"
+        return '<pre>{0}</pre>'.format(p)
