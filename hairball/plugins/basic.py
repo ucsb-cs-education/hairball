@@ -8,7 +8,11 @@ class Blocks(PluginBase):
         super(Blocks, self).__init__(name='Basic Blocks', batch=batch)
 
     def _process(self, scratch):
-        return '<pre>{0}</pre>'.format(scratch.info['author'])
+        r = ''
+        for sprite in scratch.stage.sprites:
+            r += self.to_scratch_blocks(sprite.name, sprite.scripts)
+        r += self.to_scratch_blocks('Stage', sprite.scripts)
+        return r
 
 
 class History(PluginBase):
