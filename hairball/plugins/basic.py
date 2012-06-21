@@ -1,3 +1,5 @@
+import collections
+import kurt
 from . import PluginBase
 
 
@@ -41,30 +43,31 @@ class BlockTypes(PluginBase):
     def __init__(self, batch):
         super(BlockTypes, self).__init__(name='Basic Block Types', batch=batch)
 
-    def EventHatType(self,k):
-        name = k.name
-        if (name == "EventHatMorph"):
-                name = k.args[0]
-        return name
+    def getblock(self, block):
+        blocks = collections.Counter()
+        if (block.name == "EventHatMorph"):
+            blocks[block.args[0]] = 1
+        else:
+            blocks[block.name] = 1
+        for arg in block.args:
+            if hasattr(arg, '__iter__'):
+                blocks = blocks + self.getblocklist(arg)
+            elif isinstance(arg, kurt.scripts.Block):
+                blocks = blocks + self.getblock(arg)
+        return blocks
+
+    def getblocklist(self, blocklist):
+        blocks = collections.Counter()
+        for block in blocklist:
+            blocks = blocks + self.getblock(block)
+        return blocks
 
     def _process(self, scratch):
-        block_types = {}
-        length = 0
-        name = ""
-        for x in scratch.stage.sprites:
-            for y in x.scripts:
-                for z in y.blocks:
-                    name = self.EventHatType(z)
-                    if (name not in block_types):
-                        block_types[name] = 1
-                        if (len(name)> length):
-                            length = len(name)
-                    else:
-                        block_types[name] = block_types[name] + 1
-        length = length + 5
+        blocks = collections.Counter()
+        for sprite in scratch.stage.sprites:
+            for script in sprite.scripts:
+                blocks = blocks + self.getblocklist(script.blocks)
         p = ""
-        keys =  sorted(block_types, key=block_types.__getitem__, reverse=True)
-        for b in keys:
-            p = p + "{1:{2}} {0}".format(str(block_types[b]), b, length)
-            p = p + "\n"
+        for block, count in blocks.most_common():
+            p = p + "{1:{2}} {0}".format(str(count), block, 30) + "\n"
         return '<pre>{0}</pre>'.format(p)
