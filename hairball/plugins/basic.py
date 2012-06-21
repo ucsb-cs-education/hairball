@@ -41,18 +41,26 @@ class BlockTypes(PluginBase):
     def __init__(self, batch):
         super(BlockTypes, self).__init__(name='Basic Block Types', batch=batch)
 
+    def EventHatType(self,k):
+        name = k.name
+        if (name == "EventHatMorph"):
+                name = k.args[0]
+        return name
+
     def _process(self, scratch):
         block_types = {}
         length = 0
+        name = ""
         for x in scratch.stage.sprites:
             for y in x.scripts:
                 for z in y.blocks:
-                    if (z.name not in block_types):
-                        block_types[z.name] = 1
-                        if (len(z.name)> length):
-                            length = len(z.name)
+                    name = self.EventHatType(z)
+                    if (name not in block_types):
+                        block_types[name] = 1
+                        if (len(name)> length):
+                            length = len(name)
                     else:
-                        block_types[z.name] = block_types[z.name] + 1
+                        block_types[name] = block_types[name] + 1
         length = length + 5
         p = ""
         keys =  sorted(block_types, key=block_types.__getitem__, reverse=True)
