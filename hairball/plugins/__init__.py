@@ -7,6 +7,7 @@ NO_DOCSTRING = '{0!r} needs a class docstring (comment).'
 HTML_TMPL = """<div class="heading" id="{key}">{name}</div>
 <div class="hidden" id="{key}_body">{body}</div>"""
 
+
 class PluginBase(object):
     SUBHEADING = '<div class="subheading">{0}</div>'
 
