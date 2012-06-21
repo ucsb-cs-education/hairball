@@ -37,7 +37,7 @@ class Sprites(PluginBase):
         return '<p>{0}</p>'.format(len(scratch.stage.sprites))
 
 
-class Block_Types(PluginBase):
+class BlockTypes(PluginBase):
     """Produces a count of each type of block contained in a scratch file."""
 
     def __init__(self, batch):
