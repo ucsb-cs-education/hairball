@@ -63,6 +63,31 @@ class DeadCode(PluginBase):
             return dead
 
 
+class Costumes(PluginBase):
+    """Produces a view of the different costumes and backgrounds for a scratch file."""
+
+    def __init__(self, batch):
+        super(Costumes, self).__init__(name='Basic Costumes', batch=batch)
+
+    def get_costumes(self, sprite):
+        images = '<p>{0}</p> <br />'.format(sprite.name)
+        filename = ''
+        for image in sprite.images:
+            filename = '{0}{1}.png'.format(sprite.name, image.name)
+            image.save_png(filename)
+            images = images + '<img src="{0}" /> '.format(filename) + '<br />'
+        return images
+
+    def _process(self, scratch):
+        filename = '{0}_thumbnail.png'.format(scratch.name)
+        images = '<img src="{0}" /> '.format(filename) + '<br />'
+        scratch.info['thumbnail'].save_png(filename)
+        for sprite in scratch.stage.sprites:
+            images += self.get_costumes(sprite)
+        return images
+            
+
+
 class BlockTypes(PluginBase):
     """Produces a count of each type of block contained in a scratch file."""
 
