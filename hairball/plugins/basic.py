@@ -45,7 +45,7 @@ class BlockTypes(PluginBase):
 
     def get_block(self, block):
         blocks = collections.Counter()
-        if block.name == "EventHatMorph":
+        if block.name == "EventHatMorph" and block.args[0] == "Scratch-StartClicked":
             blocks[block.args[0]] = 1
         else:
             blocks[block.name] = 1
@@ -70,5 +70,6 @@ class BlockTypes(PluginBase):
             blocks += self.get_block_list(script.blocks)
         p = ""
         for block, count in blocks.most_common():
-            p = p + "{1:{2}} {0}".format(str(count), block, 30) + "\n"
-        return '<pre>{0}</pre>'.format(p)
+            p = p + "{1:{2}} {0}".format(str(count), block, 30) + '<br />'
+
+        return '<p>{0}</p>'.format(p)
