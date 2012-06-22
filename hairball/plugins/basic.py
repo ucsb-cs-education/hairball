@@ -45,8 +45,12 @@ class BlockTypes(PluginBase):
 
     def get_block(self, block):
         blocks = collections.Counter()
-        if block.name == "EventHatMorph" and block.args[0] == "Scratch-StartClicked":
-            blocks[block.args[0]] = 1
+        if block.name == 'EventHatMorph':
+            if block.args[0] == 'Scratch-StartClicked':
+                name = 'When green flag clicked'
+            else:
+                name = 'When I receive'
+            blocks[name] = 1
         else:
             blocks[block.name] = 1
         for arg in block.args:
