@@ -37,6 +37,36 @@ class Sprites(PluginBase):
         return '<p>{0}</p>'.format(len(scratch.stage.sprites))
 
 
+class DeadCode(PluginBase):
+    """Produces a visual of the dead code for each sprite in a scratch file."""
+
+    def __init__(self, batch):
+        super(DeadCode, self).__init__('Basic Dead Code', batch=batch)
+
+    def _process(self, scratch):
+        scripts = []
+        dead = ''
+        acceptable = ["KeyEventHatMorph", "EventHatMorph",
+                      "MouseClickEventHatMorph"]
+        for sprite in scratch.stage.sprites:
+            for script in sprite.scripts:
+                if script[0].name not in acceptable:
+                    scripts.append(script)
+                if len(scripts) != 0:
+                    dead += self.to_scratch_blocks(sprite.name, scripts)
+                    scripts = []
+        for script in scratch.stage.scripts:
+            if script[0].name not in acceptable:
+                scripts.append(script)
+            if len(scripts) != 0:
+                dead += self.to_scratch_blocks("stage", scripts)
+        # if dead is empty, print "no dead code"
+        if len(dead) == 0:
+            return '<p>No Dead Code</p>'
+        else:
+            return dead
+
+
 class BlockTypes(PluginBase):
     """Produces a count of each type of block contained in a scratch file."""
 
@@ -75,5 +105,4 @@ class BlockTypes(PluginBase):
         p = ""
         for block, count in blocks.most_common():
             p = p + "{1:{2}} {0}".format(str(count), block, 30) + '<br />'
-
         return '<p>{0}</p>'.format(p)
