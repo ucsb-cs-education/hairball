@@ -19,8 +19,8 @@ class PluginBase(object):
             data.append('<div class="float scratchblocks">{0}</div>'
                         .format(script.to_block_plugin()))
         heading = PluginBase.SUBHEADING.format(heading)
-        return ('{0}\n<div class="clear"></div>\n'
-                '<div>{1}</div>').format(heading, ''.join(data))
+        return ('<div>\n{0}\n<div>{1}</div>\n<div class="clear"></div>\n'
+                '</div>\n').format(heading, ''.join(data))
 
     def __init__(self, name, batch):
         self.name = name
