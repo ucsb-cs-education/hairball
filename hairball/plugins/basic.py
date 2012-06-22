@@ -46,19 +46,15 @@ class DeadCode(PluginBase):
     def _process(self, scratch):
         scripts = []
         dead = ''
-        acceptable = ["KeyEventHatMorph", "EventHatMorph",
-                      "MouseClickEventHatMorph"]
         for sprite in scratch.stage.sprites:
-            for script in sprite.scripts:
-                if script[0].name not in acceptable:
-                    scripts.append(script)
-                if len(scripts) != 0:
-                    dead += self.to_scratch_blocks(sprite.name, scripts)
-                    scripts = []
-        for script in scratch.stage.scripts:
-            if script[0].name not in acceptable:
+            for script in self.script_iter(sprite.scripts, True):
                 scripts.append(script)
             if len(scripts) != 0:
+                dead += self.to_scratch_blocks(sprite.name, scripts)
+                scripts = []
+        for script in self.script_iter(scratch.stage.scripts, True):
+                scripts.append(script)
+        if len(scripts) != 0:
                 dead += self.to_scratch_blocks("stage", scripts)
         # if dead is empty, print "no dead code"
         if len(dead) == 0:

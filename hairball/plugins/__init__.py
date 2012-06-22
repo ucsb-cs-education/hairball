@@ -12,6 +12,16 @@ class PluginBase(object):
     SUBHEADING = '<div class="subheading">{0}</div>'
 
     @staticmethod
+    def script_iter(scriptlist, dead):
+        acceptable = ["KeyEventHatMorph", "EventHatMorph",
+                      "MouseClickEventHatMorph", "Scratch-StartClicked"]
+        for script in scriptlist:
+            if dead and script[0].name not in acceptable:
+                yield script
+            elif not dead and script[0].name in acceptable:
+                yield script
+
+    @staticmethod
     def to_scratch_blocks(heading, scripts):
         """Output the scripts in an html-ready scratch blocks format."""
         data = []
