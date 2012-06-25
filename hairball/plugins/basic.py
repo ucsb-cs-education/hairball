@@ -64,7 +64,7 @@ class DeadCode(PluginBase):
 
 
 class Costumes(PluginBase):
-    """Produces a view of the different costumes and backgrounds for a scratch file."""
+    """Produces a view of the different costumes and backgrounds."""
 
     def __init__(self, batch):
         super(Costumes, self).__init__(name='Basic Costumes', batch=batch)
@@ -73,19 +73,70 @@ class Costumes(PluginBase):
         images = '<p>{0}</p> <br />'.format(sprite.name)
         filename = ''
         for image in sprite.images:
-            filename = '{0}{1}.png'.format(sprite.name, image.name)
+            filename = '{0}{1}.png'.format(
+                sprite.name, image.name).replace('/', '_')
             image.save_png(filename)
-            images = images + '<img src="{0}" /> '.format(filename) + '<br />'
+            images += '<img class="scratch-image" src="{0}" />'.format(
+                filename)
+            images += '<br />'
         return images
 
     def _process(self, scratch):
-        filename = '{0}_thumbnail.png'.format(scratch.name)
-        images = '<img src="{0}" /> '.format(filename) + '<br />'
+        filename = '{0}_thumbnail.png'.format(scratch.name).replace('/', '_')
+        images = '<img class="scratch-image" src="{0}" /> '.format(filename)
+        images += '<br />'
         scratch.info['thumbnail'].save_png(filename)
         for sprite in scratch.stage.sprites:
             images += self.get_costumes(sprite)
+        images += self.get_costumes(scratch.stage)
         return images
-            
+
+
+class Changes(PluginBase):
+    """Produces a count of the number of property changes for each sprite."""
+
+    def __init__(self, batch):
+        super(Changes, self).__init__(name='Basic Changes', batch=batch)
+
+    def Change(self, sprite, set):
+        change = False
+        for script in sprite.scripts:
+            for block in script.blocks:
+                if block.name in set:
+                    change = True
+        return change
+
+    def _process(self, scratch):
+        attribute_changes = ""
+        for sprite in scratch.stage.sprites:
+            attribute_changes += sprite.name + "<br />"
+            attribute_changes += "Position change: {0} <br />".format(
+                self.Change(sprite, self.BLOCKMAPPING["position"]))
+            attribute_changes += "Orientation change: {0} <br />".format(
+                self.Change(sprite, self.BLOCKMAPPING["orientation"]))
+            attribute_changes += "Costume change: {0} <br />".format(
+                self.Change(sprite, self.BLOCKMAPPING["costume"]))
+            attribute_changes += "Volume change: {0} <br />".format(
+                self.Change(sprite, self.BLOCKMAPPING["volume"]))
+            attribute_changes += "Tempo change: {0} <br />".format(
+                self.Change(sprite, self.BLOCKMAPPING["tempo"]))
+            attribute_changes += "Variables change: {0} <br />".format(
+                self.Change(sprite, self.BLOCKMAPPING["variables"]))
+            attribute_changes += '<br />'
+        attribute_changes += "stage <br />"
+        attribute_changes += "Position change: {0} <br />".format(
+            self.Change(scratch.stage, self.BLOCKMAPPING["position"]))
+        attribute_changes += "Orientation change: {0} <br />".format(
+            self.Change(scratch.stage, self.BLOCKMAPPING["orientation"]))
+        attribute_changes += "Costume change: {0} <br />".format(
+            self.Change(scratch.stage, self.BLOCKMAPPING["costume"]))
+        attribute_changes += "Volume change: {0} <br />".format(
+            self.Change(scratch.stage, self.BLOCKMAPPING["volume"]))
+        attribute_changes += "Tempo change: {0} <br />".format(
+            self.Change(scratch.stage, self.BLOCKMAPPING["tempo"]))
+        attribute_changes += "Variables change: {0} <br />".format(
+            self.Change(scratch.stage, self.BLOCKMAPPING["variables"]))
+        return '<p>{0}</p>'.format(attribute_changes)
 
 
 class BlockTypes(PluginBase):
