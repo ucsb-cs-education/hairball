@@ -73,19 +73,11 @@ class Costumes(PluginBase):
         images = '<p>{0}</p> <br />'.format(sprite.name)
         filename = ''
         for image in sprite.images:
-            filename = '{0}{1}.png'.format(
-                sprite.name, image.name).replace('/', '_')
-            image.save_png(filename)
-            images += '<img class="scratch-image" src="{0}" />'.format(
-                filename)
-            images += '<br />'
+            images += self.save_png(image, image.name, sprite.name)
         return images
 
     def _process(self, scratch):
-        filename = '{0}_thumbnail.png'.format(scratch.name).replace('/', '_')
-        images = '<img class="scratch-image" src="{0}" /> '.format(filename)
-        images += '<br />'
-        scratch.info['thumbnail'].save_png(filename)
+        images = self.thumbnail
         for sprite in scratch.stage.sprites:
             images += self.get_costumes(sprite)
         images += self.get_costumes(scratch.stage)

@@ -42,6 +42,12 @@ class PluginBase(object):
                 yield script
 
     @staticmethod
+    def save_png(image, image_name, sprite_name='', save=True):
+        name = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
+        image.save_png(name)
+        return '<img class="scratch-image" src="{0}" />\n<br />\n'.format(name)
+
+    @staticmethod
     def to_scratch_blocks(heading, scripts):
         """Output the scripts in an html-ready scratch blocks format."""
         data = []
@@ -55,6 +61,7 @@ class PluginBase(object):
     def __init__(self, name, batch):
         self.name = name
         self.batch = batch
+        self.thumbnail = None
         if not self.__doc__:
             raise NotImplementedError(NO_DOCSTRING.format(self.name))
         print 'Loaded {0!r}'.format(self.name)
@@ -68,4 +75,5 @@ class PluginBase(object):
                                 description=self.__doc__)
 
     def process(self, scratch):
+        self.thumbnail = self.save_png(scratch.info['thumbnail'], 'thumbnail')
         return self.html_wrap(self._process(scratch))
