@@ -1,6 +1,5 @@
 from hashlib import sha1
 from random import random
-from sets import Set
 
 NOT_IMPL_MSG = '{0!r} needs to implement function {1!r}'
 NO_DOCSTRING = '{0!r} needs a class docstring (comment).'
@@ -12,24 +11,23 @@ HTML_TMPL = """<div class="header" id="{key}">{name}</div>
 
 class PluginBase(object):
     SUBHEADING = '<div class="subheading">{0}</div>'
-    BLOCKMAPPING = {"position": Set(["forward:", "gotoX:y:",
-                                     "gotoSpriteOrMouse:",
-                                     "glideSecs:toX:y:elapsed:from:",
-                                     "changeXposBy:", "xpos:",
-                                     "changeYposBy:", "ypos:"]),
-                    "orientation": Set(["turnRight:", "turnLeft:",
-                                        "heading:", "pointTowards:"]),
-                    "costume": Set(["showBackground:", "nextBackground",
-                                    "backgroundIndex",
-                                    "changeGraphicEffect:by:",
-                                    "setGraphicEffect:to:", "filterReset",
-                                    "lookLike:", "nextCostume", "costumeIndex",
-                                    "changeSizeBy:", "setSizeTo:", "scale",
-                                    "show", "hide", "comeToFront",
-                                    "goBackByLayers:"]),
-                    "volume": Set(["changeVolumeBy:", "setVolumeTo:"]),
-                    "tempo": Set(["changeTempoBy:", "setTempoTo:"]),
-                    "variables": Set(["changeVariable"])}
+    BLOCKMAPPING = {"position": set([("forward:", "relative"), ("gotoX:y:", "absolute"),
+                                     ("gotoSpriteOrMouse:", "relative"),
+                                     ("glideSecs:toX:y:elapsed:from:", "relative"),
+                                     ("changeXposBy:", "relative"), ("xpos:", "absolute"),
+                                     ("changeYposBy:", "relative"), ("ypos:", "absolute")]),
+                    "orientation": set([("turnRight:", "relative"), ("turnLeft:", "relative"),
+                                        ("heading:", "absolute"), ("pointTowards:", "relative")]),
+                    "costume": set([("showBackground:", "absolute"), ("nextBackground", "relative"),
+                                    ("changeGraphicEffect:by:", "absolute"),
+                                    ("setGraphicEffect:to:", "absolute"), ("filterReset", "absolute"),
+                                    ("lookLike:", "absolute"), ("nextCostume", "relative"),
+                                    ("changeSizeBy:", "relative"), ("setSizeTo:", "absolute"),
+                                    ("show", "absolute"), ("hide", "absolute"), ("comeToFront", "absolute"),
+                                    ("goBackByLayers:", "relative")]),
+                    "volume": set([("changeVolumeBy:", "relative"), ("setVolumeTo:", "absolute")]),
+                    "tempo": set([("changeTempoBy:", "relative"), ("setTempoTo:", "absolute")]),
+                    "variables": set([("changeVariable", "absolute")])}
 
     @staticmethod
     def script_iter(scriptlist, dead):

@@ -90,44 +90,44 @@ class Changes(PluginBase):
     def __init__(self, batch):
         super(Changes, self).__init__(name='Basic Changes', batch=batch)
 
-    def Change(self, sprite, set):
-        change = False
+    def change(self, sprite, property):
         for script in sprite.scripts:
             for block in script.blocks:
-                if block.name in set:
-                    change = True
-        return change
+                temp = set([(block.name, "absolute"), (block.name, "relative")])
+                if temp & property:
+                    return True
+        return False
+
+    def initialization(self, sprite, property):
+        for script in sprite.scripts:
+            if script.blocks[0].args[0] == 'Scratch-StartClicked':
+                for block in script.blocks:
+                    if (block.name, "relative") in property:
+                        return False
+                    if (block.name, "absolute") in property:
+                        return True
+        return False
+
+    def append_changes(self, sprite, property):
+        attr_changes = ""
+        change = self.change(sprite, self.BLOCKMAPPING[property])
+        attr_changes += "{0} change: {1} <br />".format(property, change)
+        if change:
+            attr_changes += "Initialized: {0} <br />".format(
+                self.initialization(sprite, self.BLOCKMAPPING[property]))
+        return attr_changes
 
     def _process(self, scratch):
         attribute_changes = ""
+        attributes = ["position", "orientation", "costume", "volume", "tempo", "variables"]
         for sprite in scratch.stage.sprites:
             attribute_changes += sprite.name + "<br />"
-            attribute_changes += "Position change: {0} <br />".format(
-                self.Change(sprite, self.BLOCKMAPPING["position"]))
-            attribute_changes += "Orientation change: {0} <br />".format(
-                self.Change(sprite, self.BLOCKMAPPING["orientation"]))
-            attribute_changes += "Costume change: {0} <br />".format(
-                self.Change(sprite, self.BLOCKMAPPING["costume"]))
-            attribute_changes += "Volume change: {0} <br />".format(
-                self.Change(sprite, self.BLOCKMAPPING["volume"]))
-            attribute_changes += "Tempo change: {0} <br />".format(
-                self.Change(sprite, self.BLOCKMAPPING["tempo"]))
-            attribute_changes += "Variables change: {0} <br />".format(
-                self.Change(sprite, self.BLOCKMAPPING["variables"]))
-            attribute_changes += '<br />'
-        attribute_changes += "stage <br />"
-        attribute_changes += "Position change: {0} <br />".format(
-            self.Change(scratch.stage, self.BLOCKMAPPING["position"]))
-        attribute_changes += "Orientation change: {0} <br />".format(
-            self.Change(scratch.stage, self.BLOCKMAPPING["orientation"]))
-        attribute_changes += "Costume change: {0} <br />".format(
-            self.Change(scratch.stage, self.BLOCKMAPPING["costume"]))
-        attribute_changes += "Volume change: {0} <br />".format(
-            self.Change(scratch.stage, self.BLOCKMAPPING["volume"]))
-        attribute_changes += "Tempo change: {0} <br />".format(
-            self.Change(scratch.stage, self.BLOCKMAPPING["tempo"]))
-        attribute_changes += "Variables change: {0} <br />".format(
-            self.Change(scratch.stage, self.BLOCKMAPPING["variables"]))
+            for property in attributes:
+                attribute_changes += self.append_changes(sprite, property)
+            attribute_changes += "<br />"
+        attribute_changes += "script <br />"
+        for property in attributes:
+            attribute_changes += self.append_changes(scratch.stage, property)
         return '<p>{0}</p>'.format(attribute_changes)
 
 
