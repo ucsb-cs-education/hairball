@@ -42,7 +42,7 @@ class PluginBase(object):
                 yield script
 
     @staticmethod
-    def save_png(image, image_name, sprite_name='', save=True):
+    def save_png(image, image_name, sprite_name=''):
         name = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
         image.save_png(name)
         return '<img class="scratch-image" src="{0}" />\n<br />\n'.format(name)
