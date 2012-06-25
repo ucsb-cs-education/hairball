@@ -84,7 +84,7 @@ class Costumes(PluginBase):
 
 
 class Changes(PluginBase):
-    """Produces a count of the number of property changes for each sprite."""
+    """Check if each sprite's properties were changed and if they were, whether or not they were initialized."""
 
     def __init__(self, batch):
         super(Changes, self).__init__(name='Basic Changes', batch=batch)
@@ -113,7 +113,7 @@ class Changes(PluginBase):
         change = self.change(sprite, self.BLOCKMAPPING[property])
         attr_changes += "{0} change: {1} <br />".format(property, change)
         if change:
-            attr_changes += "Initialized: {0} <br />".format(
+            attr_changes += '<span class = "indent1"> Initialized: {0} <br /> </span>'.format(
                 self.initialization(sprite, self.BLOCKMAPPING[property]))
         return attr_changes
 
