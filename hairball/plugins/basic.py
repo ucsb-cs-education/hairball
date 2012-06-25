@@ -71,7 +71,6 @@ class Costumes(PluginBase):
 
     def get_costumes(self, sprite):
         images = '<p>{0}</p> <br />'.format(sprite.name)
-        filename = ''
         for image in sprite.images:
             images += self.save_png(image, image.name, sprite.name)
         return images
@@ -93,7 +92,8 @@ class Changes(PluginBase):
     def change(self, sprite, property):
         for script in sprite.scripts:
             for block in script.blocks:
-                temp = set([(block.name, "absolute"), (block.name, "relative")])
+                temp = set([(block.name, "absolute"),
+                            (block.name, "relative")])
                 if temp & property:
                     return True
         return False
@@ -119,7 +119,8 @@ class Changes(PluginBase):
 
     def _process(self, scratch):
         attribute_changes = ""
-        attributes = ["position", "orientation", "costume", "volume", "tempo", "variables"]
+        attributes = ["position", "orientation",
+                      "costume", "volume", "tempo", "variables"]
         for sprite in scratch.stage.sprites:
             attribute_changes += sprite.name + "<br />"
             for property in attributes:
