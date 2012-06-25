@@ -5,7 +5,8 @@ from sets import Set
 NOT_IMPL_MSG = '{0!r} needs to implement function {1!r}'
 NO_DOCSTRING = '{0!r} needs a class docstring (comment).'
 
-HTML_TMPL = """<div class="heading" id="{key}">{name}</div>
+HTML_TMPL = """<div class="header" id="{key}">{name}</div>
+<div class="description">{description}</div>
 <div class="hidden" id="{key}_body">{body}</div>"""
 
 
@@ -63,7 +64,8 @@ class PluginBase(object):
 
     def html_wrap(self, body):
         key = sha1(str(random())).hexdigest()
-        return HTML_TMPL.format(key=key, name=self.name, body=body)
+        return HTML_TMPL.format(key=key, name=self.name, body=body,
+                                description=self.__doc__)
 
     def process(self, scratch):
         return self.html_wrap(self._process(scratch))
