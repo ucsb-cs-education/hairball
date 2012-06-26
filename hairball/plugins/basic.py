@@ -100,7 +100,7 @@ class Changes(PluginBase):
 
     def initialization(self, sprite, property):
         for script in sprite.scripts:
-            if (script.blocks and
+            if (script.blocks and script.blocks[0].args and
                 script.blocks[0].args[0] == 'Scratch-StartClicked'):
                 for block in script.blocks:
                     if (block.name, "relative") in property:
