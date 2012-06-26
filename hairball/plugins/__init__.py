@@ -1,3 +1,4 @@
+import kurt
 from hashlib import sha1
 from random import random
 
@@ -42,6 +43,29 @@ class PluginBase(object):
                     "tempo": set([("changeTempoBy:", "relative"),
                                   ("setTempoTo:", "absolute")]),
                     "variables": set([("changeVariable", "absolute")])}
+
+    @staticmethod
+    def block_iter(block_list):
+        for block in block_list:
+            for b in PluginBase.get_block(block):
+                yield b
+    
+    @staticmethod
+    def get_block(block):
+        if block.name == 'EventHatMorph':
+            if block.args[0] == 'Scratch-StartClicked':
+                yield 'When green flag clicked'
+            else:
+                yield 'When I receive'
+        else:
+            yield block.name
+        for arg in block.args:
+            if hasattr(arg, '__iter__'):
+                for b in PluginBase.block_iter(arg):
+                    yield b
+            elif isinstance(arg, kurt.scripts.Block):
+                for b in PluginBase.get_block(arg):
+                    yield b
 
     @staticmethod
     def script_iter(scriptlist, dead):

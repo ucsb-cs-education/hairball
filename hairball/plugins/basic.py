@@ -91,9 +91,9 @@ class Changes(PluginBase):
 
     def change(self, sprite, property):
         for script in sprite.scripts:
-            for block in script.blocks:
-                temp = set([(block.name, "absolute"),
-                            (block.name, "relative")])
+            for block in self.block_iter(script.blocks):
+                temp = set([(block, "absolute"),
+                            (block, "relative")])
                 if temp & property:
                     return True
         return False
@@ -102,10 +102,10 @@ class Changes(PluginBase):
         for script in sprite.scripts:
             if (script.blocks and script.blocks[0].args and
                 script.blocks[0].args[0] == 'Scratch-StartClicked'):
-                for block in script.blocks:
-                    if (block.name, "relative") in property:
+                for block in self.block_iter(script.blocks):
+                    if (block, "relative") in property:
                         return False
-                    if (block.name, "absolute") in property:
+                    if (block, "absolute") in property:
                         return True
         return False
 
@@ -139,27 +139,10 @@ class BlockTypes(PluginBase):
     def __init__(self, batch):
         super(BlockTypes, self).__init__(name='Basic Block Types', batch=batch)
 
-    def get_block(self, block):
+    def get_list_count(self, block_list):
         blocks = collections.Counter()
-        if block.name == 'EventHatMorph':
-            if block.args[0] == 'Scratch-StartClicked':
-                name = 'When green flag clicked'
-            else:
-                name = 'When I receive'
-            blocks[name] = 1
-        else:
-            blocks[block.name] = 1
-        for arg in block.args:
-            if hasattr(arg, '__iter__'):
-                blocks += self.get_block_list(arg)
-            elif isinstance(arg, kurt.scripts.Block):
-                blocks += self.get_block(arg)
-        return blocks
-
-    def get_block_list(self, block_list):
-        blocks = collections.Counter()
-        for block in block_list:
-            blocks += self.get_block(block)
+        for block in self.block_iter(block_list):
+            blocks.update({block: 1})
         return blocks
 
     def _process(self, scratch):
@@ -167,7 +150,7 @@ class BlockTypes(PluginBase):
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
-            blocks += self.get_block_list(script.blocks)
+            blocks += self.get_list_count(script.blocks)
         p = ""
         for block, count in blocks.most_common():
             p = p + "{1:{2}} {0}".format(str(count), block, 30) + '<br />'
