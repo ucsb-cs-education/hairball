@@ -1,5 +1,4 @@
 import collections
-import kurt
 from . import PluginBase
 
 
@@ -92,30 +91,21 @@ class Changes(PluginBase):
     def change(self, sprite, property):
         for script in sprite.scripts:
             for block in self.block_iter(script.blocks):
-                temp = set([(block, "absolute"),
-                            (block, "relative")])
+                temp = set([(block[0], "absolute"),
+                            (block[0], "relative")])
                 if temp & property:
-                    return True
-        return False
-
-    def initialization(self, sprite, property):
-        for script in sprite.scripts:
-            if (script.blocks and script.blocks[0].args and
-                script.blocks[0].args[0] == 'Scratch-StartClicked'):
-                for block in self.block_iter(script.blocks):
-                    if (block, "relative") in property:
-                        return False
-                    if (block, "absolute") in property:
-                        return True
-        return False
+                    if (block[0], "absolute") in property and block[1] == 0:
+                        return (True, True)
+                    else:
+                        return (True, False)
+        return (False, False)
 
     def append_changes(self, sprite, property):
         attr_changes = ""
         change = self.change(sprite, self.BLOCKMAPPING[property])
-        attr_changes += "{0} change: {1} <br />".format(property, change)
-        if change:
-            attr_changes += '<span class = "indent1"> Initialized: {0} <br /> </span>'.format(
-                self.initialization(sprite, self.BLOCKMAPPING[property]))
+        attr_changes += "{0} change: {1} <br />".format(property, change[0])
+        if change[0]:
+            attr_changes += '<span class = "indent1"> Initialized: {0} <br /> </span>'.format(change[1])
         return attr_changes
 
     def _process(self, scratch):
@@ -127,7 +117,7 @@ class Changes(PluginBase):
             for property in attributes:
                 attribute_changes += self.append_changes(sprite, property)
             attribute_changes += "<br />"
-        attribute_changes += "script <br />"
+        attribute_changes += "stage <br />"
         for property in attributes:
             attribute_changes += self.append_changes(scratch.stage, property)
         return '<p>{0}</p>'.format(attribute_changes)
@@ -141,8 +131,8 @@ class BlockTypes(PluginBase):
 
     def get_list_count(self, block_list):
         blocks = collections.Counter()
-        for block in self.block_iter(block_list):
-            blocks.update({block: 1})
+        for block  in self.block_iter(block_list):
+            blocks.update({block[0]: 1})
         return blocks
 
     def _process(self, scratch):

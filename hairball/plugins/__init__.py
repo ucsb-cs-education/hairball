@@ -45,26 +45,26 @@ class PluginBase(object):
                     "variables": set([("changeVariable", "absolute")])}
 
     @staticmethod
-    def block_iter(block_list):
+    def block_iter(block_list, level=0):
         for block in block_list:
-            for b in PluginBase.get_block(block):
+            for b in PluginBase.get_block(block, level):
                 yield b
-    
+
     @staticmethod
-    def get_block(block):
+    def get_block(block, level):
         if block.name == 'EventHatMorph':
             if block.args[0] == 'Scratch-StartClicked':
                 yield 'When green flag clicked'
             else:
                 yield 'When I receive'
         else:
-            yield block.name
+            yield (block.name, level)
         for arg in block.args:
             if hasattr(arg, '__iter__'):
-                for b in PluginBase.block_iter(arg):
+                for b in PluginBase.block_iter(arg, level + 1):
                     yield b
             elif isinstance(arg, kurt.scripts.Block):
-                for b in PluginBase.get_block(arg):
+                for b in PluginBase.get_block(arg, level):
                     yield b
 
     @staticmethod
