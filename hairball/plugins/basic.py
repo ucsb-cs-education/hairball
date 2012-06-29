@@ -103,25 +103,28 @@ class Changes(PluginBase):
                         return (True, False)
         return (False, False)
 
-    def variable_change(self, sprite):
-        vars = set([])
+    def variable_change(self, sprite, global_vars):
+        local_vars = set(sprite.vars.keys())
+        # if there are no local or global variables,
+        # there won't be any variable change
+        if len(global_vars) == 0 or len(local_vars) == 0:
+            return (False, False), global_vars
+        # otherwise, check for initilization
         for script in sprite.scripts:
-            for block in self.block_iter(script.blocks):
-                if block[2] != "" and block[2] not in vars:
-                    if block[0] == 'changeVariable':
-                        return (True, False)
-                    else:
-                        if block[0] == 'setVariable':
-                            if block[1] != 0:
-                                return (True, False)
-                            elif self.starts_green_flag(script):
-                                    vars.add(block[2])
-                            else:
-                                return (True, False)
-        if len(vars) == 0:
-            return (False, False)
+            if self.starts_green_flag(script):
+                for block in self.block_iter(script):
+                    #if we're setting a var in level 0
+                    if block[0] == 'setVariable' and block[1] == 0:
+                        if block[2] in local_vars:
+                            local_vars.remove(block[2])
+                        if block[2] in global_vars:
+                            global_vars.remove(block[2])
+        #if we're removed all variables from the local_vars,
+        #then we initialized all the variables
+        if len(local_vars) == 0:
+            return (True, True), global_vars
         else:
-            return (True, True)
+            return (True, False), global_vars
 
     def append_changes(self, sprite, property):
         attr_changes = ""
@@ -137,12 +140,14 @@ class Changes(PluginBase):
         attribute_changes = ""
         attributes = ["position", "orientation",
                       "costume", "volume", "tempo"]
+        global_vars = set(scratch.stage.vars.keys())
+        length = len(global_vars)
         for sprite in scratch.stage.sprites:
             attribute_changes += sprite.name + "<br />"
             for property in attributes:
                 attribute_changes += self.append_changes(
                     sprite, property)
-            change = self.variable_change(sprite)
+            change, global_vars = self.variable_change(sprite, global_vars)
             attribute_changes += "{0} change: {1} <br />".format(
                 "variables", change[0])
             if change[0]:
@@ -154,7 +159,13 @@ class Changes(PluginBase):
         for property in attributes:
             attribute_changes += self.append_changes(
                 scratch.stage, property)
-        change = self.variable_change(scratch.stage)
+        if length == 0:
+            change = (False, False)
+        elif len(global_vars) == 0:
+            change = (True, True)
+        else:
+            change = (True, False)
+        attribute_changes += "<br /> global variables <br />"
         attribute_changes += "{0} change: {1} <br />".format(
             "variables", change[0])
         if change[0]:
