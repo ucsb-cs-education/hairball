@@ -51,14 +51,33 @@ class PluginBase(object):
                 yield b
 
     @staticmethod
+    def starts_green_flag(script):
+        if script.blocks[0].name == 'EventHatMorph':
+            if script.blocks[0].args[0] == 'Scratch-StartClicked':
+                return True
+        else:
+            return False
+
+    @staticmethod
     def get_block(block, level):
+        variable = ""
+        if "Variable" in block.name:
+            variable = block.args[0]
+        # differentiate between different blocks with the same name
         if block.name == 'EventHatMorph':
             if block.args[0] == 'Scratch-StartClicked':
-                yield 'When green flag clicked'
+                yield('When green flag clicked', 0, variable)
             else:
-                yield 'When I receive'
+                yield('When I receive', 0, variable)
+        elif block.name == 'changeVariable':
+            if 'setVar' in str(block.args[1]):
+                yield('changeVariable', level, variable)
+            else:
+                yield('setVariable', level, variable)
         else:
-            yield (block.name, level)
+            #if this is a distinct block, use the original name
+            # TO DO: map names to more readable versions
+            yield (block.name, level, variable)
         for arg in block.args:
             if hasattr(arg, '__iter__'):
                 for b in PluginBase.block_iter(arg, level + 1):

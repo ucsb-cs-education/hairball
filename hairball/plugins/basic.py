@@ -27,7 +27,7 @@ class History(PluginBase):
 
 
 class Sprites(PluginBase):
-    """Produces a visual of all sprites contained in a scratch file."""
+    """Produces a count of all sprites contained in a scratch file."""
 
     def __init__(self, batch):
         super(Sprites, self).__init__('Basic Sprites', batch=batch)
@@ -83,43 +83,83 @@ class Costumes(PluginBase):
 
 
 class Changes(PluginBase):
-    """Check if each sprite's properties were changed and if they were, whether or not they were initialized."""
+    """Check if properties were changed and if so, if they were initialized."""
 
     def __init__(self, batch):
         super(Changes, self).__init__(name='Basic Changes', batch=batch)
 
     def change(self, sprite, property):
+        greenflag = False
         for script in sprite.scripts:
+            greenflag = self.starts_green_flag(script)
             for block in self.block_iter(script.blocks):
                 temp = set([(block[0], "absolute"),
                             (block[0], "relative")])
                 if temp & property:
-                    if (block[0], "absolute") in property and block[1] == 0:
-                        return (True, True)
+                    if (block[0], "absolute") in property:
+                        if block[1] == 0 and greenflag:
+                            return (True, True)
                     else:
                         return (True, False)
         return (False, False)
 
+    def variable_change(self, sprite):
+        vars = set([])
+        for script in sprite.scripts:
+            for block in self.block_iter(script.blocks):
+                if block[2] != "" and block[2] not in vars:
+                    if block[0] == 'changeVariable':
+                        return (True, False)
+                    else:
+                        if block[0] == 'setVariable':
+                            if block[1] != 0:
+                                return (True, False)
+                            elif self.starts_green_flag(script):
+                                    vars.add(block[2])
+                            else:
+                                return (True, False)
+        if len(vars) == 0:
+            return (False, False)
+        else:
+            return (True, True)
+
     def append_changes(self, sprite, property):
         attr_changes = ""
         change = self.change(sprite, self.BLOCKMAPPING[property])
-        attr_changes += "{0} change: {1} <br />".format(property, change[0])
+        attr_changes += "{0} change: {1} <br />".format(
+            property, change[0])
         if change[0]:
-            attr_changes += '<span class = "indent1"> Initialized: {0} <br /> </span>'.format(change[1])
+            attr_changes += '<span class = "indent1"> Initialized: '
+            attr_changes += '{0} <br /> </span>'.format(change[1])
         return attr_changes
 
     def _process(self, scratch):
         attribute_changes = ""
         attributes = ["position", "orientation",
-                      "costume", "volume", "tempo", "variables"]
+                      "costume", "volume", "tempo"]
         for sprite in scratch.stage.sprites:
             attribute_changes += sprite.name + "<br />"
             for property in attributes:
-                attribute_changes += self.append_changes(sprite, property)
+                attribute_changes += self.append_changes(
+                    sprite, property)
+            change = self.variable_change(sprite)
+            attribute_changes += "{0} change: {1} <br />".format(
+                "variables", change[0])
+            if change[0]:
+                attribute_changes += '<span class = "indent1"> Initialized: '
+                attribute_changes += '{0} <br /> </span>'.format(change[1])
             attribute_changes += "<br />"
+        attributes = ["costume", "volume", "tempo"]
         attribute_changes += "stage <br />"
         for property in attributes:
-            attribute_changes += self.append_changes(scratch.stage, property)
+            attribute_changes += self.append_changes(
+                scratch.stage, property)
+        change = self.variable_change(scratch.stage)
+        attribute_changes += "{0} change: {1} <br />".format(
+            "variables", change[0])
+        if change[0]:
+            attribute_changes += '<span class = "indent1"> Initialized: '
+            attribute_changes += '{0} <br /> </span>'.format(change[1])
         return '<p>{0}</p>'.format(attribute_changes)
 
 
@@ -131,7 +171,7 @@ class BlockTypes(PluginBase):
 
     def get_list_count(self, block_list):
         blocks = collections.Counter()
-        for block  in self.block_iter(block_list):
+        for block in self.block_iter(block_list):
             blocks.update({block[0]: 1})
         return blocks
 
