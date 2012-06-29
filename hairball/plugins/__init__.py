@@ -27,22 +27,13 @@ class PluginBase(object):
                                         ("pointTowards:", "relative")]),
                     "costume": set([("showBackground:", "absolute"),
                                     ("nextBackground", "relative"),
-                                    ("changeGraphicEffect:by:", "absolute"),
-                                    ("setGraphicEffect:to:", "absolute"),
-                                    ("filterReset", "absolute"),
                                     ("lookLike:", "absolute"),
-                                    ("nextCostume", "relative"),
-                                    ("changeSizeBy:", "relative"),
-                                    ("setSizeTo:", "absolute"),
-                                    ("show", "absolute"),
-                                    ("hide", "absolute"),
-                                    ("comeToFront", "absolute"),
-                                    ("goBackByLayers:", "relative")]),
+                                    ("nextCostume", "relative")]),
                     "volume": set([("changeVolumeBy:", "relative"),
                                    ("setVolumeTo:", "absolute")]),
                     "tempo": set([("changeTempoBy:", "relative"),
                                   ("setTempoTo:", "absolute")]),
-                    "variables": set([("changeVariable", "absolute")])}
+                    "size": set([("changeSizeBy:", "relative"), ("setSizeTo:", "absolute")])}
 
     @staticmethod
     def block_iter(block_list, level=0):

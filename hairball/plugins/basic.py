@@ -139,7 +139,7 @@ class Changes(PluginBase):
     def _process(self, scratch):
         attribute_changes = ""
         attributes = ["position", "orientation",
-                      "costume", "volume", "tempo"]
+                      "costume", "size"]
         global_vars = set(scratch.stage.vars.keys())
         length = len(global_vars)
         for sprite in scratch.stage.sprites:
@@ -147,6 +147,9 @@ class Changes(PluginBase):
             for property in attributes:
                 attribute_changes += self.append_changes(
                     sprite, property)
+            # check visibility separately
+
+            # check variables separately
             change, global_vars = self.variable_change(sprite, global_vars)
             attribute_changes += "{0} change: {1} <br />".format(
                 "variables", change[0])
@@ -154,8 +157,8 @@ class Changes(PluginBase):
                 attribute_changes += '<span class = "indent1"> Initialized: '
                 attribute_changes += '{0} <br /> </span>'.format(change[1])
             attribute_changes += "<br />"
-        attributes = ["costume", "volume", "tempo"]
-        attribute_changes += "stage <br />"
+        attributes = ["costume", "size"]
+        attribute_changes += "<br />stage <br />"
         for property in attributes:
             attribute_changes += self.append_changes(
                 scratch.stage, property)
@@ -165,7 +168,8 @@ class Changes(PluginBase):
             change = (True, True)
         else:
             change = (True, False)
-        attribute_changes += "<br /> global variables <br />"
+        # check global/stage variables
+        attribute_changes += "<br />global variables <br />"
         attribute_changes += "{0} change: {1} <br />".format(
             "variables", change[0])
         if change[0]:
