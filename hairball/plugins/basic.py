@@ -126,9 +126,26 @@ class Changes(PluginBase):
         else:
             return (True, False), global_vars
 
+    def visibility_change(self, sprite):
+        change = False
+        initialized = False
+        for script in sprite.scripts:
+            if self.starts_green_flag(script):
+                for block in self.block_iter(script):
+                    if block[0] == "show" or block[0] == "hide":
+                        if block[1] == 0:
+                            return (True, True)
+                        else:
+                            return (True, False)
+        return (False, False)
+
     def append_changes(self, sprite, property):
         attr_changes = ""
-        change = self.change(sprite, self.BLOCKMAPPING[property])
+        # check visibility separately
+        if property == "visibility":
+            change = self.visibility_change(sprite)
+        else:
+            change = self.change(sprite, self.BLOCKMAPPING[property])
         attr_changes += "{0} change: {1} <br />".format(
             property, change[0])
         if change[0]:
@@ -139,7 +156,7 @@ class Changes(PluginBase):
     def _process(self, scratch):
         attribute_changes = ""
         attributes = ["position", "orientation",
-                      "costume", "size"]
+                      "costume", "size", "visibility"]
         global_vars = set(scratch.stage.vars.keys())
         length = len(global_vars)
         for sprite in scratch.stage.sprites:
@@ -147,8 +164,6 @@ class Changes(PluginBase):
             for property in attributes:
                 attribute_changes += self.append_changes(
                     sprite, property)
-            # check visibility separately
-
             # check variables separately
             change, global_vars = self.variable_change(sprite, global_vars)
             attribute_changes += "{0} change: {1} <br />".format(
