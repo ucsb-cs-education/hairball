@@ -6,7 +6,7 @@ class DisplayBlocks(PluginBase):
     """Produces a visual of all the scripts in the file."""
 
     def __init__(self, batch):
-        super(Blocks, self).__init__(name='Basic Blocks', batch=batch)
+        super(DisplayBlocks, self).__init__(name='Basic Blocks', batch=batch)
 
     def _process(self, scratch):
         r = ''
@@ -20,7 +20,7 @@ class FileHistory(PluginBase):
     """Produces a display for the history contained in a scratch file."""
 
     def __init__(self, batch):
-        super(History, self).__init__(name='Basic History', batch=batch)
+        super(FileHistory, self).__init__(name='Basic History', batch=batch)
 
     def _process(self, scratch):
         return '<pre>{0}</pre>'.format(scratch.info['history'])
@@ -30,7 +30,7 @@ class SpriteCount(PluginBase):
     """Outputs the number of sprites in a scratch file."""
 
     def __init__(self, batch):
-        super(Sprites, self).__init__('Basic Sprites', batch=batch)
+        super(SpriteCount, self).__init__('Basic Sprites', batch=batch)
 
     def _process(self, scratch):
         return '<p>{0}</p>'.format(len(scratch.stage.sprites))
