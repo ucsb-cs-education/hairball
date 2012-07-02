@@ -87,22 +87,26 @@ class Changes(PluginBase):
     def __init__(self, batch):
         super(Changes, self).__init__(name='Basic Changes', batch=batch)
 
-    def change(self, sprite, property):
+    def gen_change(self, sprite, property):
         greenflag = False
+        bandw = False
         for script in sprite.scripts:
             greenflag = self.starts_green_flag(script)
-            for block in self.block_iter(script.blocks):
-                temp = set([(block[0], "absolute"),
-                            (block[0], "relative")])
+            for name, level, block in self.block_iter(script.blocks):
+                if name == 'doBroadcastAndWait':
+                    bandw = True
+                temp = set([(name, "absolute"),
+                            (name, "relative")])
                 if temp & property:
-                    if (block[0], "absolute") in property:
-                        if block[1] == 0 and greenflag:
+                    if (name, "absolute") in property and not bandw:
+                        if level == 0 and greenflag:
                             return (True, True)
                     else:
                         return (True, False)
         return (False, False)
 
     def variable_change(self, sprite, global_vars):
+        bandw = False
         local_vars = dict()
         for key in sprite.vars.keys():
             local_vars[key] = "uninitialized"
@@ -114,8 +118,11 @@ class Changes(PluginBase):
         for script in sprite.scripts:
             if self.starts_green_flag(script):
                 for name, level, block in self.block_iter(script):
+                    if name == 'doBroadcastAndWait':
+                        bandw = True
                     #if we're setting a var in level 0
-                    if name == 'setVariable' and level == 0:
+                    #and we're not past a broadcast and wait
+                    if name == 'setVariable' and level == 0 and not bandw:
                         variable = block.args[0]
                         if variable in local_vars.keys():
                             local_vars[variable] = 'set'
@@ -140,72 +147,61 @@ class Changes(PluginBase):
             return (False, False), global_vars
 
     def visibility_change(self, sprite):
+        bandw = False
         initialized = False
         changed = False
         for script in sprite.scripts:
             if self.starts_green_flag(script):
-                for block in self.block_iter(script):
-                    if block[0] == "show" or block[0] == "hide":
-                        if block[1] == 0:
+                for name, level, block in self.block_iter(script):
+                    if name == 'doBroadcastAndWait':
+                        bandw = True
+                    if name == "show" or name == "hide":
+                        if level == 0 and not bandw:
                             changed, initialized = True, True
                         else:
                             changed = True
         return (changed, initialized)
 
-    def append_changes(self, sprite, property):
-        attr_changes = ""
-        # check visibility separately
-        if property == "visibility":
-            change = self.visibility_change(sprite)
-        else:
-            change = self.change(sprite, self.BLOCKMAPPING[property])
-        attr_changes += "{0} change: {1} <br />".format(
-            property, change[0])
-        if change[0]:
+    def add(self, property, (changed, initialized)):
+        attr_changes = "{0} change: {1} <br />".format(property, changed)
+        if changed: 
             attr_changes += '<span class = "indent1"> Initialized: '
-            attr_changes += '{0} <br /> </span>'.format(change[1])
+            attr_changes += '{0} <br /> </span>'.format(initialized)
         return attr_changes
+
+    def sprite_changes(self, sprite, global_variables):
+        sprite_attr = sprite.name + "<br />"
+        general = ["position", "orientation", "costume", "size"]
+        for property in general:
+            sprite_attr += self.add(property, self.gen_change(
+                    sprite, self.BLOCKMAPPING[property]))
+        sprite_attr += self.add("visibility", self.visibility_change(sprite))
+        var_changes, global_variables = self.variable_change(sprite, global_variables)
+        sprite_attr += self.add("variables", var_changes) 
+        sprite_attr += "<br />"
+        return sprite_attr, global_variables
 
     def _process(self, scratch):
         attribute_changes = ""
-        attributes = ["position", "orientation",
-                      "costume", "size", "visibility"]
         global_vars = dict()
         for key in scratch.stage.vars.keys():
             global_vars[key] = "uninitialized"
         for sprite in scratch.stage.sprites:
-            attribute_changes += sprite.name + "<br />"
-            for property in attributes:
-                attribute_changes += self.append_changes(
-                    sprite, property)
-            # check variables separately
-            change, global_vars = self.variable_change(sprite, global_vars)
-            attribute_changes += "{0} change: {1} <br />".format(
-                "variables", change[0])
-            if change[0]:
-                attribute_changes += '<span class = "indent1"> Initialized: '
-                attribute_changes += '{0} <br /> </span>'.format(change[1])
-            attribute_changes += "<br />"
-        attributes = ["costume", "size"]
-        attribute_changes += "<br />stage <br />"
-        for property in attributes:
-            attribute_changes += self.append_changes(
-                scratch.stage, property)
+            sprite_attr, global_variables = self.sprite_changes(sprite, global_vars)
+            attribute_changes += sprite_attr
+        attribute_changes += self.add("background", self.gen_change(
+                scratch.stage, self.BLOCKMAPPING["costume"]))
+        attribute_changes += "<br />"
         # check global/stage variables
         # right now we're not looking at what the stage changes
-        change, global_vars = self.variable_change(scratch.stage, global_vars)
+        var_change, global_vars = self.variable_change(scratch.stage, global_vars)
         if "changed" in global_vars.values():
-            change = (True, False)
+            global_change = (True, False)
         elif "set" in global_vars.values():
-            change = (True, True)
+            global_change = (True, True)
         else:
-            change = (False, False)
-        attribute_changes += "<br />global variables <br />"
-        attribute_changes += "{0} change: {1} <br />".format(
-            "variables", change[0])
-        if change[0]:
-            attribute_changes += '<span class = "indent1"> Initialized: '
-            attribute_changes += '{0} <br /> </span>'.format(change[1])
+            global_change = (False, False)
+        attribute_changes += self.add("global variables", global_change)
         return '<p>{0}</p>'.format(attribute_changes)
 
 
