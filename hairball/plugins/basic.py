@@ -104,31 +104,43 @@ class Changes(PluginBase):
         return (False, False)
 
     def variable_change(self, sprite, global_vars):
-        local_vars = set(sprite.vars.keys())
+        local_vars = dict()
+        for key in sprite.vars.keys():
+            local_vars[key] = "uninitialized"
         # if there are no local or global variables,
         # there won't be any variable change
-        if len(global_vars) == 0 or len(local_vars) == 0:
+        if len(global_vars) == 0 and len(local_vars) == 0:
             return (False, False), global_vars
         # otherwise, check for initilization
         for script in sprite.scripts:
             if self.starts_green_flag(script):
-                for block in self.block_iter(script):
+                for name, level, block in self.block_iter(script):
                     #if we're setting a var in level 0
-                    if block[0] == 'setVariable' and block[1] == 0:
-                        if block[2] in local_vars:
-                            local_vars.remove(block[2])
-                        if block[2] in global_vars:
-                            global_vars.remove(block[2])
-        #if we're removed all variables from the local_vars,
-        #then we initialized all the variables
-        if len(local_vars) == 0:
+                    if name == 'setVariable' and level == 0:
+                        variable = block.args[0]
+                        if variable in local_vars.keys():
+                            local_vars[variable] = 'set'
+                        if variable in global_vars.keys():
+                            global_vars[variable] = 'set'
+                    elif name == 'setVariable' or name == 'changeVariable':
+                        variable = block.args[0]
+                        if variable in local_vars.keys():
+                            if local_vars[variable] == "uninitialized":
+                                local_vars[variable] = 'changed'
+                        if variable in global_vars.keys():
+                            if global_vars[variable] == "uninitialized":
+                                global_vars[variable] = 'changed'
+        #if any value in out local_vars is changed, then we didn't initialize
+        if 'changed' in local_vars.values():
+            return (True, False), global_vars
+        elif 'set' in local_vars.values():
             return (True, True), global_vars
         else:
-            return (True, False), global_vars
+            #this doesn't take into account any action
+            #by this sprite on the global variables
+            return (False, False), global_vars
 
     def visibility_change(self, sprite):
-        change = False
-        initialized = False
         for script in sprite.scripts:
             if self.starts_green_flag(script):
                 for block in self.block_iter(script):
@@ -157,8 +169,9 @@ class Changes(PluginBase):
         attribute_changes = ""
         attributes = ["position", "orientation",
                       "costume", "size", "visibility"]
-        global_vars = set(scratch.stage.vars.keys())
-        length = len(global_vars)
+        global_vars = dict()
+        for key in scratch.stage.vars.keys():
+            global_vars[key] = "uninitialized"
         for sprite in scratch.stage.sprites:
             attribute_changes += sprite.name + "<br />"
             for property in attributes:
@@ -177,13 +190,15 @@ class Changes(PluginBase):
         for property in attributes:
             attribute_changes += self.append_changes(
                 scratch.stage, property)
-        if length == 0:
-            change = (False, False)
-        elif len(global_vars) == 0:
+        # check global/stage variables
+        # right now we're not looking at what the stage changes
+        change, global_vars = self.variable_change(scratch.stage, global_vars)
+        if "changed" in global_vars.values():
+            change = (True, False)
+        elif "set" in global_vars.values():
             change = (True, True)
         else:
-            change = (True, False)
-        # check global/stage variables
+            change = (False, False)
         attribute_changes += "<br />global variables <br />"
         attribute_changes += "{0} change: {1} <br />".format(
             "variables", change[0])

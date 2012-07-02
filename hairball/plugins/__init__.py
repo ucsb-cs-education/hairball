@@ -33,7 +33,8 @@ class PluginBase(object):
                                    ("setVolumeTo:", "absolute")]),
                     "tempo": set([("changeTempoBy:", "relative"),
                                   ("setTempoTo:", "absolute")]),
-                    "size": set([("changeSizeBy:", "relative"), ("setSizeTo:", "absolute")])}
+                    "size": set([("changeSizeBy:", "relative"),
+                                 ("setSizeTo:", "absolute")])}
 
     @staticmethod
     def block_iter(block_list, level=0):
@@ -51,24 +52,21 @@ class PluginBase(object):
 
     @staticmethod
     def get_block(block, level):
-        variable = ""
-        if "Variable" in block.name:
-            variable = block.args[0]
         # differentiate between different blocks with the same name
         if block.name == 'EventHatMorph':
             if block.args[0] == 'Scratch-StartClicked':
-                yield('When green flag clicked', 0, variable)
+                yield('When green flag clicked', 0, block)
             else:
-                yield('When I receive', 0, variable)
+                yield('When I receive', 0, block)
         elif block.name == 'changeVariable':
             if 'setVar' in str(block.args[1]):
-                yield('changeVariable', level, variable)
+                yield('setVariable', level, block)
             else:
-                yield('setVariable', level, variable)
+                yield('changeVariable', level, block)
         else:
             #if this is a distinct block, use the original name
             # TO DO: map names to more readable versions
-            yield (block.name, level, variable)
+            yield (block.name, level, block)
         for arg in block.args:
             if hasattr(arg, '__iter__'):
                 for b in PluginBase.block_iter(arg, level + 1):
@@ -80,7 +78,7 @@ class PluginBase(object):
     @staticmethod
     def script_iter(scriptlist, dead):
         acceptable = ["KeyEventHatMorph", "EventHatMorph",
-                      "MouseClickEventHatMorph", "Scratch-StartClicked"]
+                      "MouseClickEventHatMorph"]
         for script in scriptlist:
             if dead and script[0].name not in acceptable:
                 yield script
