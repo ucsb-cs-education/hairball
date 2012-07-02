@@ -140,15 +140,17 @@ class Changes(PluginBase):
             return (False, False), global_vars
 
     def visibility_change(self, sprite):
+        initialized = False
+        changed = False
         for script in sprite.scripts:
             if self.starts_green_flag(script):
                 for block in self.block_iter(script):
                     if block[0] == "show" or block[0] == "hide":
                         if block[1] == 0:
-                            return (True, True)
+                            changed, initialized = True, True
                         else:
-                            return (True, False)
-        return (False, False)
+                            changed = True
+        return (changed, initialized)
 
     def append_changes(self, sprite, property):
         attr_changes = ""
