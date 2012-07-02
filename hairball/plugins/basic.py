@@ -61,7 +61,6 @@ class DeadCode(PluginBase):
         else:
             return dead
 
-
 class Costumes(PluginBase):
     """Produces a view of the different costumes and backgrounds."""
 

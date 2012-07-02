@@ -43,14 +43,6 @@ class PluginBase(object):
                 yield b
 
     @staticmethod
-    def starts_green_flag(script):
-        if script.blocks[0].name == 'EventHatMorph':
-            if script.blocks[0].args[0] == 'Scratch-StartClicked':
-                return True
-        else:
-            return False
-
-    @staticmethod
     def get_block(block, level):
         # differentiate between different blocks with the same name
         if block.name == 'EventHatMorph':
@@ -76,20 +68,35 @@ class PluginBase(object):
                     yield b
 
     @staticmethod
-    def script_iter(scriptlist, dead):
-        acceptable = ["KeyEventHatMorph", "EventHatMorph",
-                      "MouseClickEventHatMorph"]
+    def script_iter(scriptlist, dead=False):
+        acceptable = ["KeyEventHatMorph", "MouseClickEventHatMorph"]
         for script in scriptlist:
-            if dead and script[0].name not in acceptable:
-                yield script
-            elif not dead and script[0].name in acceptable:
-                yield script
+            first = script.blocks[0]
+            if dead:
+                if first.name != "EventHatMorph":
+                    if first.name not in acceptable:
+                        yield script
+                elif first.args[0] == "":
+                    yield script
+            else:
+                if first.name in acceptable:
+                    yield script
+                elif first.name == "EventHatMorph" and first.args[0] != "":
+                    yield script
 
     @staticmethod
     def save_png(image, image_name, sprite_name=''):
         name = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
         image.save_png(name)
         return '<img class="scratch-image" src="{0}" />\n<br />\n'.format(name)
+
+    @staticmethod
+    def starts_green_flag(script):
+        if script.blocks[0].name == 'EventHatMorph':
+            if script.blocks[0].args[0] == 'Scratch-StartClicked':
+                return True
+        else:
+            return False
 
     @staticmethod
     def to_scratch_blocks(heading, scripts):
