@@ -2,8 +2,8 @@ import collections
 from . import PluginBase
 
 
-class Blocks(PluginBase):
-    """Produces an aggregate count of blocks contained in a scratch file."""
+class DisplayBlocks(PluginBase):
+    """Produces a visual of all the scripts in the file."""
 
     def __init__(self, batch):
         super(Blocks, self).__init__(name='Basic Blocks', batch=batch)
@@ -16,7 +16,7 @@ class Blocks(PluginBase):
         return r
 
 
-class History(PluginBase):
+class FileHistory(PluginBase):
     """Produces a display for the history contained in a scratch file."""
 
     def __init__(self, batch):
@@ -26,8 +26,8 @@ class History(PluginBase):
         return '<pre>{0}</pre>'.format(scratch.info['history'])
 
 
-class Sprites(PluginBase):
-    """Produces a count of all sprites contained in a scratch file."""
+class SpriteCount(PluginBase):
+    """Outputs the number of sprites in a scratch file."""
 
     def __init__(self, batch):
         super(Sprites, self).__init__('Basic Sprites', batch=batch)
