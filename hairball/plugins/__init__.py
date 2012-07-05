@@ -1,4 +1,5 @@
 import kurt
+from functools import wraps
 from hashlib import sha1
 from random import random
 
@@ -8,6 +9,75 @@ NO_DOCSTRING = '{0!r} needs a class docstring (comment).'
 HTML_TMPL = """<div class="header" id="{key}">{name}</div>
 <div class="description">{description}</div>
 <div class="hidden" id="{key}_body">{body}</div>"""
+
+
+class PluginController(object):
+    """The simple plugin name should go on the first comment line.
+
+    The plugin description should start on the third line and can span as many
+    lines as needed, though all newlines will be treated as a single space.
+
+    If you are seeing this message it means you need to define a docstring for
+    your plugin.
+    """
+
+    @staticmethod
+    def save_png(image, image_name, sprite_name=''):
+        """Save the image to disc and returns the relative path to the file.
+
+        Use the companion function `get_image_html` in the view to get an html
+        view for the image."""
+        path = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
+        image.save_png(path)
+        return path
+
+    @property
+    def description(self):
+        lines = []
+        for line in self.__doc__.split('\n')[2:]:
+            line = line.strip()
+            if line:
+                lines.append(line)
+        return ' '.join(lines)
+
+    @property
+    def name(self):
+        return self.__doc__.split('\n')[0]
+
+    def _process(self, scratch):
+        # We need to save the thumbnail somewhere; might as well do it here
+        self.save_png(scratch.info['thumbnail'], 'thumbnail')
+        return self.analyze(scratch)
+
+    def view_data(self, **kwargs):
+        kwargs['_name'] = self.name
+        kwargs['_description'] = self.description
+        return kwargs
+
+
+class PluginView(object):
+    IMG_TMPL = '<img class="scratch-image" src="{0}" />\n<br />\n'
+
+    @staticmethod
+    def get_image_html(relative_path):
+        return PluginView.IMG_TMPL.format(relative_path)
+
+    def __init__(self, function):
+        wraps(function)(self)
+        self.function = function
+
+    def __call__(self, *args, **kwargs):
+        data = self.function(*args, **kwargs)
+        body = self.view(data)
+        key = sha1(str(random())).hexdigest()
+        return HTML_TMPL.format(key=key, name=data['_name'], body=body,
+                                description=data['_description'])
+
+    def __get__(self, instance, instance_type):
+        return self.__class__(self.function.__get__(instance, instance_type))
+
+
+### Delete everything below here once it has been moved to the new system
 
 
 class PluginBase(object):
@@ -85,12 +155,6 @@ class PluginBase(object):
                     yield script
 
     @staticmethod
-    def save_png(image, image_name, sprite_name=''):
-        name = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
-        image.save_png(name)
-        return '<img class="scratch-image" src="{0}" />\n<br />\n'.format(name)
-
-    @staticmethod
     def starts_green_flag(script):
         if script.blocks[0].name == 'EventHatMorph':
             if script.blocks[0].args[0] == 'Scratch-StartClicked':
@@ -116,14 +180,6 @@ class PluginBase(object):
         if not self.__doc__:
             raise NotImplementedError(NO_DOCSTRING.format(self.name))
         print 'Loaded {0!r}'.format(self.name)
-
-    def finalize(self):
-        raise NotImplementedError(NOT_IMPL_MSG.format(self.name, 'finalize'))
-
-    def html_wrap(self, body):
-        key = sha1(str(random())).hexdigest()
-        return HTML_TMPL.format(key=key, name=self.name, body=body,
-                                description=self.__doc__)
 
     def process(self, scratch):
         self.thumbnail = self.save_png(scratch.info['thumbnail'], 'thumbnail')
