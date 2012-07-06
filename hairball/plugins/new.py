@@ -1,4 +1,4 @@
-from . import PluginController, PluginView
+from . import PluginController, PluginView, PluginWrapper
 
 
 # NOTE: The views must be defined before the controllers
@@ -16,7 +16,7 @@ class SpriteImages(PluginController):
 
     Shows the first costume of each sprite in a scratch file.
     """
-    @SpriteImagesView
+    @PluginWrapper(html=SpriteImagesView)
     def analyze(self, scratch):
         sprites = [('Stage', self.save_png(scratch.stage.images[0], 'stage'))]
         for sprite in scratch.stage.sprites:

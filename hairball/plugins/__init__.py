@@ -20,6 +20,94 @@ class PluginController(object):
     your plugin.
     """
 
+    @staticmethod
+    def save_png(image, image_name, sprite_name=''):
+        """Save the image to disc and returns the relative path to the file.
+
+        Use the companion function `get_image_html` in the view to get an html
+        view for the image."""
+        path = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
+        image.save_png(path)
+        return path
+
+    @property
+    def description(self):
+        lines = []
+        for line in self.__doc__.split('\n')[2:]:
+            line = line.strip()
+            if line:
+                lines.append(line)
+        return ' '.join(lines)
+
+    @property
+    def name(self):
+        return self.__doc__.split('\n')[0]
+
+    def _process(self, scratch, **kwargs):
+        # We need to save the thumbnail somewhere; might as well do it here
+        self.save_png(scratch.info['thumbnail'], 'thumbnail')
+        return self.analyze(scratch, **kwargs)
+
+    def view_data(self, **kwargs):
+        kwargs['_name'] = self.name
+        kwargs['_description'] = self.description
+        return kwargs
+
+
+class PluginView(object):
+    IMG_TMPL = '<img class="scratch-image" src="{0}" />\n<br />\n'
+
+    @staticmethod
+    def get_image_html(relative_path):
+        return PluginView.IMG_TMPL.format(relative_path)
+
+    def __init__(self, function):
+        wraps(function)(self)
+        self.function = function
+
+    def __call__(self, *args, **kwargs):
+        data = self.function(*args, **kwargs)
+        body = self.view(data)
+        key = sha1(str(random())).hexdigest()
+        return HTML_TMPL.format(key=key, name=data['_name'], body=body,
+                                description=data['_description'])
+
+    def __get__(self, instance, instance_type):
+        return self.__class__(self.function.__get__(instance, instance_type))
+
+
+class PluginWrapper(object):
+    def __init__(self, html=None, txt=None):
+        self.html = html
+        self.txt = txt
+
+    def __call__(self, function):
+        html_decorator = txt_decorator = None
+        if self.html:
+            html_decorator = self.html(function)
+        if self.txt:
+            txt_decorator = self.txt(function)
+        def wrapped(*args, **kwargs):
+            if '_decorator' not in kwargs:
+                return function(*args, **kwargs)
+            selection = kwargs['_decorator']
+            del kwargs['_decorator']
+
+            if html_decorator and selection == 'html':
+                return html_decorator(*args, **kwargs)
+            elif txt_decorator and selection == 'txt':
+                return txt_decorator(*args, **kwargs)
+            else:
+                raise Exception('Unknown decorator type {0!r}'
+                                .format(selection))
+        return wrapped
+
+
+### Delete everything below here once it has been moved to the new system
+
+
+class PluginBase(object):
+    SUBHEADING = '<div class="subheading">{0}</div>'
     BLOCKMAPPING = {"position": set([("forward:", "relative"),
                                      ("gotoX:y:", "absolute"),
                                      ("gotoSpriteOrMouse:", "relative"),
