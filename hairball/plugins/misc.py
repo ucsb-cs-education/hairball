@@ -11,6 +11,6 @@ class FileHistory(PluginController):
 
     Shows the history of the Scratch file.
     """
-    @FileHistoryView
+    @PluginWrapper(html=FileHistoryView)
     def analyze(self, scratch):
         return self.view_data(history=scratch.info['history'])

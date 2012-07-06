@@ -21,7 +21,7 @@ class BlockTypes(PluginController):
             blocks.update({block[0]: 1})
         return blocks
 
-    @BlockTypesView
+    @PluginWrapper(html=BlockTypesView)
     def analyze(self, scratch):
         blocks = collections.Counter()
         scripts = scratch.stage.scripts[:]
@@ -47,7 +47,7 @@ class DeadCode(PluginController):
 
     Shows all of the dead code for each sprite in a scratch file.
     """
-    @DeadCodeView
+    @PluginWrapper(html=DeadCodeView)
     def analyze(self, scratch):
         deadScripts = []
         SpriteDict = {}
@@ -78,7 +78,7 @@ class ScriptImages(PluginController):
 
     Shows all of the scripts for each sprite in a scratch file.
     """
-    @ScriptImagesView
+    @PluginWrapper(html=ScriptImagesView)
     def analyze(self, scratch):
         sprite_scripts = []
         scripts = []

@@ -11,7 +11,7 @@ class SpriteCount(PluginController):
 
     Outputs the number of sprites in a scratch file.
     """
-    @SpriteCountView
+    @PluginWrapper(html=SpriteCountView)
     def analyze(self, scratch):
         count = len(scratch.stage.sprites)
         return self.view_data(count=count)
@@ -38,7 +38,7 @@ class SpriteImages(PluginController):
             images.append(self.save_png(image, image.name, sprite.name))
         return images
 
-    @SpriteImagesView
+    @PluginWrapper(html=SpriteImagesView)
     def analyze(self, scratch):
         images = dict()
         for sprite in scratch.stage.sprites:

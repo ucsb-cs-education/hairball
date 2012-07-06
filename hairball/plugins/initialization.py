@@ -111,7 +111,7 @@ class Initialization(PluginController):
         sprite_attr["variables"] = var_changes
         return sprite_attr, global_variables
 
-    @InitializationView
+    @PluginWrapper(html=InitializationView)
     def analyze(self, scratch):
         attribute_changes = dict()
         global_vars = dict()
