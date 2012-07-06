@@ -1,4 +1,4 @@
-from . import PluginController, PluginView
+from . import PluginController, PluginView, PluginWrapper
 
 
 class InitializationView(PluginView):
