@@ -49,20 +49,20 @@ class DeadCode(PluginController):
     """
     @PluginWrapper(html=DeadCodeView)
     def analyze(self, scratch):
-        deadScripts = []
-        SpriteDict = {}
+        sprite_scripts = []
+        sprite_dict = {}
         for sprite in scratch.stage.sprites:
             # 2nd param in script_iter is True if you want only dead code
-            for script in self.script_iter(sprite.scripts, True):
-                deadScripts.append(script.to_block_plugin())
-            if len(deadScripts) != 0:
-                SpriteDict[sprite.name] = deadScripts
-                deadScripts = []
+            for script in script_iter(sprite.scripts, True):
+                sprite_scripts.append(script)
+            if len(sprite_scripts) != 0:
+                sprite_dict[sprite.name] = sprite_scripts
+                sprite_scripts = []
         for script in self.script_iter(scratch.stage.scripts, True):
-            deadScripts.append(script.to_block_plugin())
-        if len(deadScripts) != 0:
-            SpriteDict["stage"] = deadScripts
-        return self.view_data(deadcode=SpriteDict)
+            sprite_scripts.append(script)
+        if len(sprite_scripts) != 0:
+            sprite_dict["stage"] = sprite_scripts
+        return self.view_data(deadcode=sprite_dict)
 
 
 class ScriptImagesView(PluginView):

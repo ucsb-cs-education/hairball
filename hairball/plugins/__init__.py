@@ -235,7 +235,7 @@ class PluginView(object):
         data = []
         for script in scripts:
             data.append('<div class="float scratchblocks">{0}</div>'
-                        .format(script))
+                        .format(script.to_block_plugin()))
         heading = PluginView.SUBHEADING.format(heading)
         return ('<div>\n{0}\n<div>{1}</div>\n<div class="clear"></div>\n'
                 '</div>\n').format(heading, ''.join(data))
