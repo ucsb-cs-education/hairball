@@ -1,4 +1,4 @@
-from . import PluginController, PluginView, PluginWraper
+from . import PluginController, PluginView, PluginWrapper
 
 
 class SpriteCountView(PluginView):
