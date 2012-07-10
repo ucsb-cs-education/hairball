@@ -162,6 +162,18 @@ class PluginBase(object):
                 for b in PluginController.get_block(arg, level):
                     yield b
 
+    #only works if there aren't multiple green flag scripts
+    @staticmethod
+    def pull_green_flag(scripts):
+        greenflag = scripts[0]
+        other = scripts[0]
+        for script in scripts:
+            if PluginController.starts_green_flag(script):
+                greenflag = script
+        other = scripts
+        other.remove(greenflag)
+        return (greenflag, other)
+
     @staticmethod
     def save_png(image, image_name, sprite_name=''):
         """Save the image to disc and returns the relative path to the file.

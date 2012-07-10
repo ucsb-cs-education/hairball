@@ -31,6 +31,7 @@ class BlockTypes(PluginController):
         #return blocks.most_common()
         return self.view_data(types=blocks.most_common())
 
+
 class DeadCodeView(PluginView):
     def view(self, data):
         dead = ""
@@ -38,7 +39,8 @@ class DeadCodeView(PluginView):
             dead = '<p>No Dead Code</p>'
         else:
             for sprite in data['deadcode'].keys():
-                dead += self.to_scratch_blocks(sprite, data['deadcode'][sprite])
+                dead += self.to_scratch_blocks(
+                    sprite, data['deadcode'][sprite])
         return dead
 
 
