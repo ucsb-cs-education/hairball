@@ -135,9 +135,10 @@ class PluginBase(object):
     @staticmethod
     def block_iter(block_list, level=0):
         for block in block_list:
-            for b in PluginController.get_block(block, level):
-                yield b
-                
+            if isinstance(block, kurt.scripts.Block):
+                for b in PluginController.get_block(block, level):
+                    yield b
+
     @staticmethod
     def get_block(block, level):
         # differentiate between different blocks with the same name
@@ -154,13 +155,13 @@ class PluginBase(object):
         else:
             #if this is a distinct block, use the original name
             yield (block.name, level, block)
-        for arg in block.args:
-            if hasattr(arg, '__iter__'):
-                for b in PluginController.block_iter(arg, level + 1):
-                    yield b
-            elif isinstance(arg, kurt.scripts.Block):
-                for b in PluginController.get_block(arg, level):
-                    yield b
+            for arg in block.args:
+                if hasattr(arg, '__iter__'):
+                    for b in PluginController.block_iter(arg, level + 1):
+                        yield b
+                elif isinstance(arg, kurt.scripts.Block):
+                    for b in PluginController.get_block(arg, level):
+                        yield b
 
     #only works if there aren't multiple green flag scripts
     @staticmethod

@@ -28,7 +28,6 @@ class BlockTypes(PluginController):
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
             blocks += self.get_list_count(script.blocks)
-        #return blocks.most_common()
         return self.view_data(types=blocks.most_common())
 
 
