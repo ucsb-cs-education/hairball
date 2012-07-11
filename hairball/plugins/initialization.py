@@ -163,15 +163,16 @@ class Variables(PluginController):
         bandw = False
         for var in sprite.vars.keys():
             variables[var] = "unused"
-        for name, level, block in self.block_iter(greenflag.blocks):
-            if name == 'doBroadcastAndWait':
-                bandw = True
-            if name == 'setVariable' and level == 0 and not bandw:
-                if block.args[0] in variables.keys():
-                    variables[block.args[0]] = 'set'
-            elif name == 'setVariable' or name == 'changeVariable':
-                if (block.args[0], "unused") in variables.items():
-                    variables[block.args[0]] = "changed"
+        for script in greenflag:
+            for name, level, block in self.block_iter(script.blocks):
+                if name == 'doBroadcastAndWait':
+                    bandw = True
+                if name == 'setVariable' and level == 0 and not bandw:
+                    if block.args[0] in variables.keys():
+                        variables[block.args[0]] = 'set'
+                elif name == 'setVariable' or name == 'changeVariable':
+                    if (block.args[0], "unused") in variables.items():
+                        variables[block.args[0]] = "changed"
         for script in other:
             for name, level, block in self.block_iter(script.blocks):
                 if name == 'setVariable' or name == 'changeVariable':
@@ -188,11 +189,11 @@ class Variables(PluginController):
         other = []
         for sprite in scratch.stage.sprites:
             (gf, o) = self.pull_green_flag(list(sprite.scripts))
-            greenflag.append(gf)
+            greenflag.extend(gf)
             other.extend(o)
         if len(scratch.stage.scripts) != 0:
             (gf, o) = self.pull_green_flag(list(scratch.stage.scripts))
-            greenflag.append(gf)
+            greenflag.extend(gf)
             other.extend(o)
         for script in greenflag:
             for name, level, block in self.block_iter(script.blocks):

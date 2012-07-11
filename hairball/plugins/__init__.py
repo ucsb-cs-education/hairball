@@ -166,13 +166,12 @@ class PluginBase(object):
     #only works if there aren't multiple green flag scripts
     @staticmethod
     def pull_green_flag(scripts):
-        greenflag = scripts[0]
-        other = scripts[0]
+        greenflag = []
+        other = scripts
         for script in scripts:
             if PluginController.starts_green_flag(script):
-                greenflag = script
-        other = scripts
-        other.remove(greenflag)
+                greenflag.append(script)
+                other.remove(script)
         return (greenflag, other)
 
     @staticmethod
