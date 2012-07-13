@@ -1,4 +1,5 @@
 import kurt
+import os
 from functools import wraps
 from hashlib import sha1
 from random import random
@@ -187,6 +188,7 @@ class PluginBase(object):
         view for the image."""
         path = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
         image.save_png(path)
+        os.chmod(path, 0400)  # Read-only archive file
         return path
 
     @staticmethod
@@ -195,6 +197,7 @@ class PluginBase(object):
         """
 
         image.save_png(image_absolute_path_name)
+        os.chmod(image_absolute_path_name, 0400)  # Read-only archive file
         return image_absolute_path_name
 
     @staticmethod
