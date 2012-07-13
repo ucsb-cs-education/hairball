@@ -43,9 +43,14 @@ class PluginController(object):
     def name(self):
         return self.__doc__.split('\n')[0]
 
-    def _process(self, scratch, **kwargs):
+    def _process(self, scratch, thumbnail_path=None, **kwargs):
         # We need to save the thumbnail somewhere; might as well do it here
         self.save_png(scratch.info['thumbnail'], 'thumbnail')
+
+        # also save a copy of the thumbnail in the backup directory
+        if thumbnail_path:
+            self.save_png_dir(scratch.info['thumbnail'], thumbnail_path)
+
         return self.analyze(scratch, **kwargs)
 
     def view_data(self, **kwargs):
@@ -183,6 +188,14 @@ class PluginBase(object):
         path = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
         image.save_png(path)
         return path
+
+    @staticmethod
+    def save_png_dir(image, image_absolute_path_name):
+        """Save the image to disc and returns the absolute path to the file.
+        """
+
+        image.save_png(image_absolute_path_name)
+        return image_absolute_path_name
 
     @staticmethod
     def script_iter(scriptlist, dead=False):
