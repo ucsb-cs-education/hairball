@@ -188,7 +188,8 @@ class PluginBase(object):
         view for the image."""
         path = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
         image.save_png(path)
-        os.chmod(path, 0400)  # Read-only archive file
+        os.chmod(path, 0444)  # Read-only archive file
+        # Must be world readable for NGINX to serve the file.
         return path
 
     @staticmethod
