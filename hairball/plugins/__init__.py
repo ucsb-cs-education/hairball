@@ -46,11 +46,12 @@ class PluginController(object):
 
     def _process(self, scratch, thumbnail_path=None, **kwargs):
         # We need to save the thumbnail somewhere; might as well do it here
-        self.save_png(scratch.info['thumbnail'], 'thumbnail')
-
-        # also save a copy of the thumbnail in the backup directory
-        if thumbnail_path:
-            self.save_png_dir(scratch.info['thumbnail'], thumbnail_path)
+        if not hasattr(scratch, 'thumbnail_saved'):
+            self.save_png(scratch.info['thumbnail'], 'thumbnail')
+            # also save a copy of the thumbnail in the backup directory
+            if thumbnail_path:
+                self.save_png_dir(scratch.info['thumbnail'], thumbnail_path)
+            scratch.thumbnail_saved = True
 
         return self.analyze(scratch, **kwargs)
 
