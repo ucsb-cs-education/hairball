@@ -30,7 +30,10 @@ class Initialization(PluginController):
         greenflag = False
         bandw = False
         for script in sprite.scripts:
-            greenflag = self.starts_green_flag(script)
+            if self.hat_type(script) == "When green flag clicked":
+                greenflag = True
+            else:
+                greenflag = False
             for name, level, block in self.block_iter(script.blocks):
                 if name == 'doBroadcastAndWait':
                     bandw = True
@@ -55,7 +58,7 @@ class Initialization(PluginController):
             return (False, False), global_vars
         # otherwise, check for initilization
         for script in sprite.scripts:
-            if self.starts_green_flag(script):
+            if self.hat_type(script) == "When green flag clicked":
                 for name, level, block in self.block_iter(script):
                     if name == 'doBroadcastAndWait':
                         bandw = True
@@ -90,13 +93,14 @@ class Initialization(PluginController):
         initialized = False
         changed = False
         for script in sprite.scripts:
-            if self.starts_green_flag(script):
+            if self.hat_type(script) == "When green flag clicked":
                 for name, level, block in self.block_iter(script):
                     if name == 'doBroadcastAndWait':
                         bandw = True
                     if name == "show" or name == "hide":
                         if level == 0 and not bandw:
                             changed, initialized = True, True
+                            return (changed, initialized)
                         else:
                             changed = True
         return (changed, initialized)
@@ -158,7 +162,8 @@ class Variables(PluginController):
     Checks if variables were changed and if so, if they were initialized.
     """
     def local_vars(self, sprite):
-        (greenflag, other) = self.pull_green_flag(list(sprite.scripts))
+        (greenflag, other) = self.pull_hat(
+            "When green flag clicked", list(sprite.scripts))
         variables = dict()
         bandw = False
         for var in sprite.vars.keys():
@@ -188,11 +193,13 @@ class Variables(PluginController):
         greenflag = []
         other = []
         for sprite in scratch.stage.sprites:
-            (gf, o) = self.pull_green_flag(list(sprite.scripts))
+            (gf, o) = self.pull_hat(
+                "When green flag clicked", list(sprite.scripts))
             greenflag.extend(gf)
             other.extend(o)
         if len(scratch.stage.scripts) != 0:
-            (gf, o) = self.pull_green_flag(list(scratch.stage.scripts))
+            (gf, o) = self.pull_hat(
+                "When green flag clicked", list(scratch.stage.scripts))
             greenflag.extend(gf)
             other.extend(o)
         for script in greenflag:

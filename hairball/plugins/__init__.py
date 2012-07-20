@@ -52,7 +52,8 @@ class PluginController(object):
             if thumbnail_path:
                 self.save_png_dir(scratch.info['thumbnail'], thumbnail_path)
             scratch.thumbnail_saved = True
-
+        if not hasattr(scratch, 'plugin_prepared'):
+            self.prepare_plugin(scratch)
         return self.analyze(scratch, **kwargs)
 
     def view_data(self, **kwargs):
@@ -169,17 +170,90 @@ class PluginBase(object):
                 elif isinstance(arg, kurt.scripts.Block):
                     for b in PluginController.get_block(arg, level):
                         yield b
-
-    #only works if there aren't multiple green flag scripts
+                 
+       
     @staticmethod
-    def pull_green_flag(scripts):
-        greenflag = []
+    def get_messages(block_list):
+        for block in block_list:
+            if isinstance(block, kurt.scripts.Block):
+            #this bypasses comments                                                                                
+                if block.name != '':
+                    for name, level, block in PluginController.get_block(block, 0):
+                        if name == "broadcast:" or name == "doBroadcastAndWait":
+                            yield block.args[0]
+
+
+    @staticmethod
+    def hat_type(script):
+        if script.blocks[0].name == 'EventHatMorph':
+            if script.blocks[0].args[0] == 'Scratch-StartClicked':
+                return "When green flag clicked"
+            else:
+                return "When I receive"
+        elif 'EventHatMorph' in script.blocks[0].name:
+            return script.blocks[0].name
+        else:
+            return "No Hat"
+
+
+    @staticmethod
+    def prepare_plugin(scratch):
+        processing = set()
+        pending = {}
+        for sprite in scratch.stage.sprites:
+            for script in sprite.scripts:
+                type = PluginController.hat_type(script)
+                if type == "No Hat":
+                    script.reachable = False
+                elif type == "When I receive":
+                    message = script.blocks[0].args[0]
+                    if message == "":
+                        script.reachable = False
+                    else:
+                        if message in pending.keys():
+                            pending[message].add(script)
+                        else:
+                            pending[message] = {script}
+                else:
+                    processing.add(script)
+        for script in scratch.stage.scripts:
+            type = PluginController.hat_type(script)
+            if type == "No Hat":
+                script.reachable = False
+            elif type == "When I receive":
+                message = script.blocks[0].args[0]
+                if message == "":
+                    script.reachable = False
+                else:
+                    if message in pending.keys():
+                        pending[message].add(script)
+                    else:
+                        pending[message] = {script}
+            else:
+                processing.add(script)
+        while len(processing) != 0:
+            script = processing.pop()
+            for message in PluginController.get_messages(script.blocks):
+                if message in pending.keys():
+                    for message_script in pending[message]:
+                        processing.add(message_script)
+                    del pending[message]
+            script.reachable = True
+        while len(pending) != 0:
+            (message, scripts) = pending.popitem()
+            for script in scripts:
+                script.reachable = False
+        scratch.plugin_prepared = True
+
+    @staticmethod
+    def pull_hat(hat_name, scripts):
+        hat_scripts = []
         other = scripts
         for script in scripts:
-            if PluginController.starts_green_flag(script):
-                greenflag.append(script)
+            if PluginController.hat_type(script) == hat_name:
+                hat_scripts.append(script)
                 other.remove(script)
-        return (greenflag, other)
+        return (hat_scripts, other)
 
     @staticmethod
     def save_png(image, image_name, sprite_name=''):
@@ -202,30 +276,6 @@ class PluginBase(object):
         os.chmod(image_absolute_path_name, 0400)  # Read-only archive file
         return image_absolute_path_name
 
-    @staticmethod
-    def script_iter(scriptlist, dead=False):
-        acceptable = ["KeyEventHatMorph", "MouseClickEventHatMorph"]
-        for script in scriptlist:
-            first = script.blocks[0]
-            if dead:
-                if first.name != "EventHatMorph":
-                    if first.name not in acceptable:
-                        yield script
-                elif first.args[0] == "":
-                    yield script
-            else:
-                if first.name in acceptable:
-                    yield script
-                elif first.name == "EventHatMorph" and first.args[0] != "":
-                    yield script
-
-    @staticmethod
-    def starts_green_flag(script):
-        if script.blocks[0].name == 'EventHatMorph':
-            if script.blocks[0].args[0] == 'Scratch-StartClicked':
-                return True
-        else:
-            return False
 
     @property
     def description(self):

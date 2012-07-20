@@ -53,14 +53,15 @@ class DeadCode(PluginController):
         sprite_scripts = []
         sprite_dict = {}
         for sprite in scratch.stage.sprites:
-            # 2nd param in script_iter is True if you want only dead code
-            for script in self.script_iter(sprite.scripts, True):
-                sprite_scripts.append(script)
+            for script in sprite.scripts:
+                if script.reachable == False:
+                    sprite_scripts.append(script)
             if len(sprite_scripts) != 0:
                 sprite_dict[sprite.name] = sprite_scripts
                 sprite_scripts = []
-        for script in self.script_iter(scratch.stage.scripts, True):
-            sprite_scripts.append(script)
+        for script in scratch.stage.scripts:
+            if script.reachable == False:
+                sprite_scripts.append(script)
         if len(sprite_scripts) != 0:
             sprite_dict["stage"] = sprite_scripts
         return self.view_data(deadcode=sprite_dict)
