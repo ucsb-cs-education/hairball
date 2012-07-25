@@ -170,18 +170,18 @@ class PluginBase(object):
                 elif isinstance(arg, kurt.scripts.Block):
                     for b in PluginController.get_block(arg, level):
                         yield b
-                 
-       
+
     @staticmethod
     def get_messages(block_list):
         for block in block_list:
-            if isinstance(block, kurt.scripts.Block):
-            #this bypasses comments                                                                                
-                if block.name != '':
-                    for name, level, block in PluginController.get_block(block, 0):
-                        if name == "broadcast:" or name == "doBroadcastAndWait":
+            if isinstance(block, kurt.scripts.Block) and block.name != '':
+                for name, level, block in PluginController.get_block(block, 0):
+                    if name == "broadcast:" or name == "doBroadcastAndWait":
+                        # check here if it's static or dynamic
+                        if isinstance(block.args[0], kurt.scripts.Block):
+                            yield "dynamic"
+                        else:
                             yield block.args[0]
-
 
     @staticmethod
     def hat_type(script):
@@ -195,11 +195,11 @@ class PluginBase(object):
         else:
             return "No Hat"
 
-
     @staticmethod
     def prepare_plugin(scratch):
         processing = set()
         pending = {}
+        scratch.static = True
         for sprite in scratch.stage.sprites:
             for script in sprite.scripts:
                 type = PluginController.hat_type(script)
@@ -217,6 +217,7 @@ class PluginBase(object):
                 else:
                     processing.add(script)
         for script in scratch.stage.scripts:
+            script.static = True
             type = PluginController.hat_type(script)
             if type == "No Hat":
                 script.reachable = False
@@ -275,7 +276,6 @@ class PluginBase(object):
         image.save_png(image_absolute_path_name)
         os.chmod(image_absolute_path_name, 0400)  # Read-only archive file
         return image_absolute_path_name
-
 
     @property
     def description(self):

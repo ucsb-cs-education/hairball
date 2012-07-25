@@ -34,12 +34,17 @@ class BlockTypes(PluginController):
 class DeadCodeView(PluginView):
     def view(self, data):
         dead = ""
-        if len(data['deadcode']) == 0:
+        (dynamic, deadcode) = data['deadcode']
+        if len(deadcode) == 0:
             dead = '<p>No Dead Code</p>'
         else:
-            for sprite in data['deadcode'].keys():
+            if dynamic:
+                dead = '<p>Warning: Contains dynamic broadcast messages</p>'
+            else:
+                dead = '<p>No dynamic broadcast messages</p>'
+            for sprite in deadcode.keys():
                 dead += self.to_scratch_blocks(
-                    sprite, data['deadcode'][sprite])
+                    sprite, deadcode[sprite])
         return dead
 
 
@@ -48,23 +53,39 @@ class DeadCode(PluginController):
 
     Shows all of the dead code for each sprite in a scratch file.
     """
+    def check_dynamic(self, scratch):
+        messages = set()
+        for sprite in scratch.stage.sprites:
+            for script in sprite.scripts:
+                for message in self.get_messages(script.blocks):
+                    messages.add(message)
+        for script in scratch.stage.scripts:
+            for message in self.get_messages(script.blocks):
+                messages.add(message)
+        if "dynamic" in messages:
+            return True
+        else:
+            return False
+
+
     @PluginWrapper(html=DeadCodeView)
     def analyze(self, scratch):
         sprite_scripts = []
         sprite_dict = {}
         for sprite in scratch.stage.sprites:
             for script in sprite.scripts:
-                if script.reachable == False:
+                if script.reachable is False:
                     sprite_scripts.append(script)
             if len(sprite_scripts) != 0:
                 sprite_dict[sprite.name] = sprite_scripts
                 sprite_scripts = []
         for script in scratch.stage.scripts:
-            if script.reachable == False:
+            if script.reachable is False:
                 sprite_scripts.append(script)
         if len(sprite_scripts) != 0:
             sprite_dict["stage"] = sprite_scripts
-        return self.view_data(deadcode=sprite_dict)
+        dynamic = self.check_dynamic(scratch)
+        return self.view_data(deadcode=(dynamic, sprite_dict))
 
 
 class ScriptImagesView(PluginView):
