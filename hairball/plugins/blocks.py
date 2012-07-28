@@ -67,7 +67,6 @@ class DeadCode(PluginController):
         else:
             return False
 
-
     @PluginWrapper(html=DeadCodeView)
     def analyze(self, scratch):
         sprite_scripts = []
