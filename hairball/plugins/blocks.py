@@ -41,8 +41,6 @@ class DeadCodeView(PluginView):
         else:
             if dynamic:
                 dead = '<p>Warning: Contains dynamic broadcast messages</p>'
-            else:
-                dead = '<p>No dynamic broadcast messages</p>'
             for sprite in deadcode.keys():
                 dead += self.to_scratch_blocks(
                     sprite, deadcode[sprite])
@@ -68,55 +66,18 @@ class DeadCode(PluginController):
         else:
             return False
 
-    def check_empty(self, block):
-        arithmetic = set(['+', '-', '*', '/', '<', '=', '>', '\\', 'rounded'])
-        logic = set(['&', '`', 'not', 'doIf', 'doIfElse',
-                     'doForeverIf', 'doWaitUntil', 'doUntil'])
-        objects = set(['gotoSpriteOrMouse:', 'touching:', 'distanceTo:'])
-        strings = set(['think:duration:elapsed:from:', 'think:', 'say:',
-                       'say:duration:elapsed:from:', 'doAsk',
-                       'concatenate:with:', 'stringLength:',
-                       'broadcast:', 'doBroadcastAndWait', 'When I receive'])
-        if block.name == 'letter:of:':
-            if '0' in block.args or '' in block.args:
-                return True
-        elif block.name in arithmetic:
-            if block.name == 'rounded':
-                if block.args == [0]:
-                    return True
-            elif block.args == [0, 0]:
-                return True
-        elif block.name in logic:
-            if block.name == '&' or block.name == '`':
-                if block.args == [False, False]:
-                    return True
-            elif False in block.args:
-                return True
-        elif block.name in objects:
-            if None in block.args:
-                return True
-        elif block.name in strings:
-            if "" in block.args:
-                return True
-        for arg in block.args:
-            if isinstance(arg, kurt.scripts.Block):
-                return self.check_empty(arg)
-        return False
-
     def get_useless(self, blocklist):
         useless = []
         for block in blocklist:
-            if self.check_empty(block):
-                useless.append(block)
-            else:
-                for arg in block.args:
-                    # lists of blocks are the stuff inside of c blocks
-                    if hasattr(arg, '__iter__'):
-                        useless.extend(self.get_useless(arg))
-                # these are parameters
-                    elif isinstance(arg, kurt.scripts.Block):
-                        if self.check_empty(block):
-                            useless.append(block)
+            if isinstance(block, kurt.scripts.Block):
+                if block.empty:
+                    useless.append(block)
+                else:
+                    for arg in block.args:
+                        if hasattr(arg, '__iter__'):
+                            useless.extend(self.get_useless(arg))
+                        elif isinstance(arg, kurt.scripts.Block):
+                            useless.extend(self.get_useless([arg]))
         return useless
 
     @PluginWrapper(html=DeadCodeView)

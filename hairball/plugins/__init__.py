@@ -148,6 +148,43 @@ class PluginBase(object):
                     yield b
 
     @staticmethod
+    def check_empty(block):
+        arithmetic = set(['+', '-', '*', '/', '<', '=', '>', '\\', 'rounded'])
+        logic = set(['&', '`', 'not', 'doIf', 'doIfElse',
+                     'doForeverIf', 'doWaitUntil', 'doUntil'])
+        objects = set(['gotoSpriteOrMouse:', 'touching:', 'distanceTo:'])
+        strings = set(['think:duration:elapsed:from:', 'think:', 'say:',
+                       'say:duration:elapsed:from:', 'doAsk',
+                       'concatenate:with:', 'stringLength:',
+                       'broadcast:', 'doBroadcastAndWait', 'When I receive'])
+        block.empty = False
+        if block.name == 'letter:of:':
+            if '0' in block.args or '' in block.args:
+                block.empty = True
+        elif block.name in arithmetic:
+            if block.name == 'rounded':
+                if block.args == [0]:
+                    block.empty = True
+            elif block.args == [0, 0]:
+                block.empty = True
+        elif block.name in logic:
+            if block.name == '&' or block.name == '`':
+                if block.args == [False, False]:
+                    block.empty = True
+            elif False in block.args:
+                block.empty = True
+        elif block.name in objects:
+            if None in block.args:
+                block.empty = True
+        elif block.name in strings:
+            if "" in block.args:
+                block.empty = True
+        for arg in block.args:
+            if isinstance(arg, kurt.scripts.Block):
+                PluginController.check_empty(arg)
+                block.empty = arg.empty
+
+    @staticmethod
     def get_block(block, level):
         # differentiate between different blocks with the same name
         if block.name == 'EventHatMorph':
@@ -196,6 +233,19 @@ class PluginBase(object):
             return "No Hat"
 
     @staticmethod
+    def mark_useless(blocklist):
+        for block in blocklist:
+            PluginController.check_empty(block)
+            if not block.empty:
+                for arg in block.args:
+                    # lists of blocks are the stuff inside of c blocks
+                    if hasattr(arg, '__iter__'):
+                        PluginController.get_useless(arg)
+                    # these are parameters
+                    elif isinstance(arg, kurt.scripts.Block):
+                        PluginController.check_empty(block)
+
+    @staticmethod
     def prepare_plugin(scratch):
         processing = set()
         pending = {}
@@ -234,12 +284,18 @@ class PluginBase(object):
                 processing.add(script)
         while len(processing) != 0:
             script = processing.pop()
+            PluginController.mark_useless(script.blocks)
             for message in PluginController.get_messages(script.blocks):
                 if message in pending.keys():
                     for message_script in pending[message]:
                         processing.add(message_script)
                     del pending[message]
-            script.reachable = True
+            script.reachable = False
+            #if everything after the hat block is empty,
+            # the whole script is dead code
+            for block in script.blocks:
+                if not block.empty and block != script.blocks[0]:
+                    script.reachable = True
         while len(pending) != 0:
             (message, scripts) = pending.popitem()
             for script in scripts:
