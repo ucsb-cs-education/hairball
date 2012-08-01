@@ -44,6 +44,9 @@ class PluginController(object):
     def name(self):
         return self.__doc__.split('\n')[0]
 
+    def finalize(self):
+        print "finalize not implemented"
+
     def _process(self, scratch, thumbnail_path=None, **kwargs):
         # We need to save the thumbnail somewhere; might as well do it here
         if not hasattr(scratch, 'thumbnail_saved'):
@@ -197,7 +200,8 @@ class PluginBase(object):
                 yield('setVariable', level, block)
             else:
                 yield('changeVariable', level, block)
-        else:
+        # skip comments
+        elif block.name != "":
             #if this is a distinct block, use the original name
             yield (block.name, level, block)
             for arg in block.args:
@@ -240,7 +244,7 @@ class PluginBase(object):
                 for arg in block.args:
                     # lists of blocks are the stuff inside of c blocks
                     if hasattr(arg, '__iter__'):
-                        PluginController.get_useless(arg)
+                        PluginController.mark_useless(arg)
                     # these are parameters
                     elif isinstance(arg, kurt.scripts.Block):
                         PluginController.check_empty(block)

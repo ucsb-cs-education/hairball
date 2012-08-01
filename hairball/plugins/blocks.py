@@ -16,6 +16,17 @@ class BlockTypes(PluginController):
 
     Produces a count of each type of block contained in a scratch file.
     """
+    def __init__(self):
+        super(BlockTypes, self).__init__()
+        self.blocks = collections.Counter()
+
+    def finalize(self):
+        cloud = open('wordcloud.txt', 'w')
+        for block, count in self.blocks.most_common():
+            blockcount = (str(block), str(count))
+            cloud.write(', '.join(blockcount))
+            cloud.write('\n')
+
     def get_list_count(self, block_list):
         blocks = collections.Counter()
         for block in self.block_iter(block_list):
@@ -24,12 +35,11 @@ class BlockTypes(PluginController):
 
     @PluginWrapper(html=BlockTypesView)
     def analyze(self, scratch):
-        blocks = collections.Counter()
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
-            blocks += self.get_list_count(script.blocks)
-        return self.view_data(types=blocks.most_common())
+            self.blocks += self.get_list_count(script.blocks)
+        return self.view_data(types=self.blocks.most_common())
 
 
 class DeadCodeView(PluginView):
