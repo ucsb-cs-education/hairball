@@ -1,4 +1,5 @@
-import collections
+from collections import Counter
+import copy
 import kurt
 from . import PluginController, PluginView, PluginWrapper
 
@@ -16,30 +17,50 @@ class BlockTypes(PluginController):
 
     Produces a count of each type of block contained in a scratch file.
     """
-    def __init__(self):
-        super(BlockTypes, self).__init__()
-        self.blocks = collections.Counter()
-
-    def finalize(self):
-        cloud = open('wordcloud.txt', 'w')
-        for block, count in self.blocks.most_common():
-            blockcount = (str(block), str(count))
-            cloud.write(', '.join(blockcount))
-            cloud.write('\n')
-
-    def get_list_count(self, block_list):
-        blocks = collections.Counter()
-        for block in self.block_iter(block_list):
-            blocks.update({block[0]: 1})
-        return blocks
-
     @PluginWrapper(html=BlockTypesView)
     def analyze(self, scratch):
+        blocks = Counter()
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
-            self.blocks += self.get_list_count(script.blocks)
-        return self.view_data(types=self.blocks.most_common())
+            for name, level, block in self.block_iter(script.blocks):
+                blocks.update({name: 1})
+        return self.view_data(types=blocks.most_common())
+
+
+class BlockTotals(PluginController):
+    """Block Totals
+
+    Produces a count of each type of block contained in all the scratch files.
+    """
+    def __init__(self):
+        super(BlockTotals, self).__init__()
+        self.blocks = {}
+
+    def finalize(self):
+        file = open('blocktypes.txt', 'w')
+        file.write("activity, pair, ")
+        for key in self.BLOCKCOUNTER.keys():
+            file.write(key)
+            file.write(', ')
+        for ((group, project), blockcount) in self.blocks.items():
+            file.write('\n')
+            file.write(project)
+            file.write(', ')
+            file.write(group)
+            for block in self.BLOCKCOUNTER.keys():
+                file.write(', ')
+                file.write(str(blockcount[block]))
+
+    def analyze(self, scratch):
+        self.blocks[(scratch.group, scratch.project)] = copy.deepcopy(
+            self.BLOCKCOUNTER)
+        scripts = scratch.stage.scripts[:]
+        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
+        for script in scripts:
+            for name, level, block in self.block_iter(script.blocks):
+                self.blocks[(scratch.group, scratch.project)].update({name: 1})
+        return self.view_data(types=self.blocks)
 
 
 class DeadCodeView(PluginView):
@@ -117,8 +138,9 @@ class DeadCode(PluginController):
 class ScriptImagesView(PluginView):
     def view(self, data):
         script_images = ""
-        for sprite, scripts in data['scripts']:
-            script_images += self.to_scratch_blocks(sprite, scripts)
+        for sprite in data['scripts'].keys():
+            script_images += self.to_scratch_blocks(
+                sprite, data["scripts"][sprite])
         return script_images
 
 
@@ -128,15 +150,22 @@ class ScriptImages(PluginController):
     Shows all of the scripts for each sprite in a scratch file.
     """
     @PluginWrapper(html=ScriptImagesView)
+    def __init__(self):
+        super(ScriptImages, self).__init__()
+        self.script_images = {}
+
+    def finalize(self):
+        file = open('scriptimages.html', 'w')
+        for sprite in self.script_images.keys():
+            file.write(
+                self.to_scratch_blocks(sprite, self.script_images[sprite]))
+
     def analyze(self, scratch):
-        sprite_scripts = []
-        scripts = []
         for sprite in scratch.stage.sprites:
+            self.script_images[sprite.name] = []
             for script in sprite.scripts:
-                sprite_scripts.append(script.to_block_plugin())
-            scripts.append((sprite.name, sprite_scripts))
-            sprite_scripts = []
+                self.script_images[sprite.name].append(script)
+        self.script_images["stage"] = []
         for script in scratch.stage.scripts:
-            sprite_scripts.append(script.to_block_plugin())
-        scripts.append(("stage", sprite_scripts))
-        return self.view_data(scripts=scripts)
+            self.script_images["stage"].append(script)
+        return self.view_data(scripts=self.script_images)

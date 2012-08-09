@@ -1,5 +1,6 @@
 import kurt
 import os
+from collections import Counter
 from functools import wraps
 from hashlib import sha1
 from random import random
@@ -20,6 +21,90 @@ class PluginController(object):
     If you are seeing this message it means you need to define a docstring for
     your plugin.
     """
+    IMG_TMPL = '<img class="scratch-image" src="{0}" />\n<br />\n'
+    SUBHEADING = '<div class="subheading">{0}</div>'
+
+    BLOCKCOUNTER = Counter({
+        "go to x: %n y: %n": 0,
+        "go to %m": 0,
+        "glide %n secs to x: %n y: %n": 0,
+        "change x by %n": 0,
+        "set x to %n": 0,
+        "change y by %n": 0,
+        "set y to %n": 0,
+        "if on edge bounce": 0,
+        "x position": 0, "y position": 0,
+        "direction": 0,
+        "when green flag clicked": 0,
+        "when %k key pressed": 0,
+        "when %m clicked": 0,
+        "wait %n secs": 0, "forever": 0,
+        "repeat %n": 0, "broadcast": 0,
+        "broadcast %e and wait": 0,
+        "when I receive %e": 0,
+        "forever if %b": 0,
+        "if %b": 0, "if %b": 0,
+        "wait until %b": 0,
+        "repeat until %b": 0,
+        "stop script": 0, "stop all": 0,
+        "switch to background %l": 0,
+        "next background": 0,
+        "background #": 0,
+        "change %g effect by %n": 0,
+        "set %g effect to %n": 0,
+        "clear graphic effects": 0,
+        "switch to costume %l": 0,
+        "next costume": 0, "costume #": 0,
+        "say %s for %n secs": 0,
+        "say %s": 0,
+        "think %s for %n secs": 0,
+        "think %s": 0,
+        "change %g effect by %n": 0,
+        "set %g effect to %n": 0,
+        "clear graphic effects": 0,
+        "change size by %n": 0,
+        "set size to %n %": 0,
+        "size": 0, "show": 0, "hide": 0,
+        "go to front": 0, "go back %n layers": 0,
+        "ask %s and wait": 0, "answer": 0,
+        "mouse x": 0, "mouse y": 0,
+        "mouse down?": 0, "key %k pressed?": 0,
+        "reset timer": 0, "timer": 0,
+        "%a of %m": 0, "loudness": 0, "loud?": 0,
+        "sensor %h ?": 0, "touching %m ?": 0,
+        "touching color %C ?": 0,
+        "color %C is touching %C ?": 0,
+        "distance to %m": 0, "play sound %S": 0,
+        "play sound %S until done": 0,
+        "stop all sounds": 0,
+        "play drum %D for %n beats": 0,
+        "rest for %n beats": 0,
+        "play note %N for %n beats": 0,
+        "set instrument to %I": 0,
+        "change volume by %n": 0,
+        "set volume to %n %": 0,
+        "volume": 0, "change tempo by %n": 0,
+        "set tempo to %n bpm": 0, "tempo": 0,
+        "%n + %n": 0, "%n - %n": 0, "%n * %n": 0,
+        "%n / %n": 0, "pick random %n to %n": 0,
+        "%s < %s": 0, "%s = %s": 0, "%s > %s": 0,
+        "%b and %b": 0, "%b or %b": 0, "not %b": 0,
+        "join %s %s": 0, "letter %n of %s": 0,
+        "length of %s": 0, "%n mod %n": 0,
+        "round %n": 0, "%f of %n": 0,
+        "A block with color %C and color %c:": 0,
+        "clear pen trails": 0, "pen down": 0,
+        "pen up": 0, "set pen color to %c": 0,
+        "change pen color by %n": 0,
+        "set pen color to %n": 0,
+        "change pen shade by %n": 0,
+        "set pen shade to %n": 0,
+        "change pen size by %n": 0,
+        "set pen size to %n": 0,
+        "stamp": 0, "show variable %v": 0,
+        "hide variable %v": 0, "%v": 0,
+        "change %v by %n": 0,
+        "set %v to %s": 0})
 
     @staticmethod
     def save_png(image, image_name, sprite_name=''):
@@ -143,6 +228,104 @@ class PluginBase(object):
                     "size": set([("changeSizeBy:", "relative"),
                                  ("setSizeTo:", "absolute")])}
 
+    MAPPING = {"forward:": "move %n steps",
+               "turnRight:": "turn clockwise %n degrees",
+               "turnLeft:": "turn counterclockwise %n degrees",
+               "heading:": "point in direction %d",
+               "pointTowards:": "point towards %m",
+               "gotoX:y:": "go to x: %n y: %n",
+               "gotoSpriteOrMouse:": "go to %m",
+               "glideSecs:toX:y:elapsed:from:": "glide %n secs to x: %n y: %n",
+               "changeXposBy:": "change x by %n", "xpos:": "set x to %n",
+               "changeYposBy:": "change y by %n", "ypos:": "set y to %n",
+               "bounceOffEdge": "if on edge bounce",
+               "xpos": "x position", "ypos": "y position",
+               "EventHatMorph": "when green flag clicked",
+               "KeyEventHatMorph": "when %k key pressed",
+               "MouseClickEventHatMorph": "when %m clicked",
+               "wait:elapsed:from:": "wait %n secs",
+               "doForever": "forever", "doRepeat": "repeat %n",
+               "broadcast:": "broadcast", "doIfElse": "if %b",
+               "doBroadcastAndWait": "broadcast %e and wait",
+               "EventHatMorph": "when I receive %e",
+               "doForeverIf": "forever if %b", "doIf": "if %b",
+               "doWaitUntil": "wait until %b",
+               "doUntil": "repeat until %b",
+               "doReturn": "stop script",
+               "stopAll": "stop all", "heading": "direction",
+               "showBackground:": "switch to background %l",
+               "nextBackground": "next background",
+               "backgroundIndex": "background #",
+               "changeGraphicEffect:by:": "change %g effect by %n",
+               "setGraphicEffect:to:": "set %g effect to %n",
+               "filterReset": "clear graphic effects",
+               "lookLike:": "switch to costume %l",
+               "nextCostume": "next costume",
+               "costumeIndex": "costume #",
+               "say:duration:elapsed:from:": "say %s for %n secs",
+               "say:": "say %s", "think:": "think %s",
+               "think:duration:elapsed:from:": "think %s for %n secs",
+               "changeGraphicEffect:by:": "change %g effect by %n",
+               "setGraphicEffect:to:": "set %g effect to %n",
+               "filterReset": "clear graphic effects",
+               "changeSizeBy:": "change size by %n",
+               "setSizeTo:": "set size to %n %",
+               "scale": "size", "show": "show", "hide": "hide",
+               "comeToFront": "go to front",
+               "goBackByLayers:": "go back %n layers",
+               "doAsk": "ask %s and wait",
+               "answer": "answer", "mouseX": "mouse x",
+               "mouseY": "mouse y", "mousePressed": "mouse down?",
+               "keyPressed:": "key %k pressed?",
+               "timerReset": "reset timer", "timer": "timer",
+               "getAttribute:of:": "%a of %m",
+               "soundLevel": "loudness",
+               "isLoud": "loud?", "sensor:": "%H sensor value",
+               "sensorPressed:": "sensor %h ?",
+               "touching:": "touching %m ?",
+               "touchingColor:": "touching color %C ?",
+               "color:sees:": "color %C is touching %C ?",
+               "distanceTo:": "distance to %m",
+               "playSound:": "play sound %S",
+               "doPlaySoundAndWait": "play sound %S until done",
+               "stopAllSounds": "stop all sounds",
+               "drum:duration:elapsed:from:": "play drum %D for %n beats",
+               "rest:elapsed:from:": "rest for %n beats",
+               "noteOn:duration:elapsed:from:": "play note %N for %n beats",
+               "midiInstrument:": "set instrument to %I",
+               "changeVolumeBy:": "change volume by %n",
+               "setVolumeTo:": "set volume to %n %",
+               "volume": "volume", "tempo": "tempo",
+               "changeTempoBy:": "change tempo by %n",
+               "setTempoTo:": "set tempo to %n bpm",
+               "+": "%n + %n", "-": "%n - %n", "*": "%n * %n",
+               "<": "%s < %s", "/": "%n / %n",
+               "randomFrom:to:": "pick random %n to %n",
+               "=": "%s = %s", "&": "%b and %b", "`": "%b or %b",
+               ">": "%s > %s", "not": "not %b",
+               "concatenate:with:": "join %s %s",
+               "letter:of:": "letter %n of %s",
+               "stringLength:": "length of %s",
+               "\\": "%n mod %n", "rounded": "round %n",
+               "computeFunction:of:": "%f of %n",
+               "thingwithColor:andColor:":
+               "A block with color %C and color %c:",
+               "clearPenTrails": "clear pen trails",
+               "putPenDown": "pen down",
+               "putPenUp": "pen up",
+               "penColor:": "set pen color to %c",
+               "changePenHueBy:": "change pen color by %n",
+               "setPenHueTo:": "set pen color to %n",
+               "changePenShadeBy:": "change pen shade by %n",
+               "setPenShadeTo:": "set pen shade to %n",
+               "changePenSizeBy:": "change pen size by %n",
+               "penSize:": "set pen size to %n",
+               "stampCostume": "stamp", "readVariable": "%v",
+               "showVariable:": "show variable %v",
+               "hideVariable:": "hide variable %v",
+               "changeVariable": "change %v by %n",
+               "changeVariable": "set %v to %s"}
+
     @staticmethod
     def block_iter(block_list, level=0):
         for block in block_list:
@@ -192,18 +375,18 @@ class PluginBase(object):
         # differentiate between different blocks with the same name
         if block.name == 'EventHatMorph':
             if block.args[0] == 'Scratch-StartClicked':
-                yield('When green flag clicked', 0, block)
+                yield('when green flag clicked', 0, block)
             else:
-                yield('When I receive', 0, block)
+                yield("when I receive %e", 0, block)
         elif block.name == 'changeVariable':
             if 'setVar' in str(block.args[1]):
-                yield('setVariable', level, block)
+                yield("set %v to %s", level, block)
             else:
-                yield('changeVariable', level, block)
+                yield("change %v by %n", level, block)
         # skip comments
         elif block.name != "":
-            #if this is a distinct block, use the original name
-            yield (block.name, level, block)
+#if this is a distinct block, use the original name
+            yield (PluginController.MAPPING[block.name], level, block)
             for arg in block.args:
                 if hasattr(arg, '__iter__'):
                     for b in PluginController.block_iter(arg, level + 1):
@@ -228,9 +411,9 @@ class PluginBase(object):
     def hat_type(script):
         if script.blocks[0].name == 'EventHatMorph':
             if script.blocks[0].args[0] == 'Scratch-StartClicked':
-                return "When green flag clicked"
+                return "when green flag clicked"
             else:
-                return "When I receive"
+                return "when I receive %e"
         elif 'EventHatMorph' in script.blocks[0].name:
             return script.blocks[0].name
         else:
@@ -275,7 +458,7 @@ class PluginBase(object):
             type = PluginController.hat_type(script)
             if type == "No Hat":
                 script.reachable = False
-            elif type == "When I receive":
+            elif type == "when I receive %e":
                 message = script.blocks[0].args[0]
                 if message == "":
                     script.reachable = False
@@ -336,6 +519,17 @@ class PluginBase(object):
         image.save_png(image_absolute_path_name)
         os.chmod(image_absolute_path_name, 0400)  # Read-only archive file
         return image_absolute_path_name
+
+    @staticmethod
+    def to_scratch_blocks(heading, scripts):
+        """Output the scripts in an html-ready scratch blocks format."""
+        data = []
+        for script in scripts:
+            data.append('<div class="float scratchblocks">{0}</div>'
+                        .format(script.to_block_plugin()))
+        heading = PluginController.SUBHEADING.format(heading)
+        return ('<div>\n{0}\n<div>{1}</div>\n<div class="clear"></div>\n'
+                '</div>\n').format(heading, ''.join(data))
 
     @property
     def description(self):
