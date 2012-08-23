@@ -1,4 +1,5 @@
 from . import PluginController, PluginView, PluginWrapper
+import copy
 
 
 class InitializationView(PluginView):
@@ -26,122 +27,116 @@ class Initialization(PluginController):
 
     Checks if properties were changed and if so, if they were initialized.
     """
+    def __init__(self):
+        super(Initialization, self).__init__()
+        self.initialization = {}
+
+    def finalize(self):
+        file = open('initialization.txt', 'w')
+        file.write("activity, pair: costume visibility")
+        file.write(" orientation position size background")
+        for ((group, project), sprites) in self.initialization.items():
+            file.write('\n{0}, {1}: '.format(project, group))
+            properties = self.sort_by_prop(sprites)
+            for property in ["costume", "visibility", "orientation",
+                             "position", "size", "background"]:
+                file.write("{0} ".format(str(properties[property])))
+
+    def sort_by_prop(self, sprites):
+        init = {}
+        init["costume"] = 1
+        init["visibility"] = 1
+        init["position"] = 1
+        init["orientation"] = 1
+        init["size"] = 1
+        (changed, initialized) = sprites["stage"]["background"]
+        if not changed:
+            init["background"] = 1
+        elif changed and initialized:
+            init["background"] = 1
+        else:
+            init["background"] = 0
+        del sprites["stage"]
+        for (sprite, properties) in sprites.items():
+            for (property, (changed, initialized)) in properties.items():
+                if changed and not initialized:
+                    init[property] = 0
+        return init
+
     def gen_change(self, sprite, property):
-        greenflag = False
+        changed = False
+        initialized = False
         bandw = False
-        for script in sprite.scripts:
-            if self.hat_type(script) == "When green flag clicked":
-                greenflag = True
-            else:
-                greenflag = False
+        # go through all the greenflag scripts FIRST, then others
+        (gf, other) = self.pull_hat("when green flag clicked", sprite.scripts)
+        # first check the green flag scripts
+        for script in gf:
+            bandw = False
             for name, level, block in self.block_iter(script.blocks):
-                if name == 'doBroadcastAndWait':
+                if name == "broadcast %e and wait":
                     bandw = True
                 temp = set([(name, "absolute"),
                             (name, "relative")])
                 if temp & property:
-                    if (name, "absolute") in property and not bandw:
-                        if level == 0 and greenflag:
-                            return (True, True)
-                    else:
-                        return (True, False)
-        return (False, False)
-
-    def variable_change(self, sprite, global_vars):
-        bandw = False
-        local_vars = dict()
-        for key in sprite.vars.keys():
-            local_vars[key] = "uninitialized"
-        # if there are no local or global variables,
-        # there won't be any variable change
-        if len(global_vars) == 0 and len(local_vars) == 0:
-            return (False, False), global_vars
-        # otherwise, check for initilization
-        for script in sprite.scripts:
-            if self.hat_type(script) == "When green flag clicked":
-                for name, level, block in self.block_iter(script):
-                    if name == 'doBroadcastAndWait':
-                        bandw = True
-                    #if we're setting a var in level 0
-                    #and we're not past a broadcast and wait
-                    if name == 'setVariable' and level == 0 and not bandw:
-                        variable = block.args[0]
-                        if variable in local_vars.keys():
-                            local_vars[variable] = 'set'
-                        if variable in global_vars.keys():
-                            global_vars[variable] = 'set'
-                    elif name == 'setVariable' or name == 'changeVariable':
-                        variable = block.args[0]
-                        if variable in local_vars.keys():
-                            if local_vars[variable] == "uninitialized":
-                                local_vars[variable] = 'changed'
-                        if variable in global_vars.keys():
-                            if global_vars[variable] == "uninitialized":
-                                global_vars[variable] = 'changed'
-        #if any value in out local_vars is changed, then we didn't initialize
-        if 'changed' in local_vars.values():
-            return (True, False), global_vars
-        elif 'set' in local_vars.values():
-            return (True, True), global_vars
-        else:
-            #this doesn't take into account any action
-            #by this sprite on the global variables
-            return (False, False), global_vars
+                    if (name, "absolute") in property:
+                        if not bandw and level == 0:
+                            (changed, initialized) = (True, True)
+                        elif not initialized:
+                            (changed, initialized) = (True, False)
+                    elif not initialized:
+                        (changed, initialized) = (True, False)
+        # now check the others for any change
+        for script in other:
+            for name, level, block in self.block_iter(script.blocks):
+                temp = set([(name, "absolute"),
+                            (name, "relative")])
+                if temp & property and not changed:
+                    return (True, False)
+        return (changed, initialized)
 
     def visibility_change(self, sprite):
         bandw = False
-        initialized = False
         changed = False
-        for script in sprite.scripts:
-            if self.hat_type(script) == "When green flag clicked":
-                for name, level, block in self.block_iter(script):
-                    if name == 'doBroadcastAndWait':
-                        bandw = True
-                    if name == "show" or name == "hide":
-                        if level == 0 and not bandw:
-                            changed, initialized = True, True
-                            return (changed, initialized)
-                        else:
-                            changed = True
+        initialized = False
+        (gf, other) = self.pull_hat("when green flag clicked", sprite.scripts)
+        for script in gf:
+            bandw = False
+            for name, level, block in self.block_iter(script):
+                if name == "broadcast %e and wait":
+                    bandw = True
+                if name == "show" or name == "hide":
+                    if level == 0 and not bandw:
+                        (changed, initialized) = (True, True)
+                    elif not initialized:
+                        (changed, initialized) = (True, False)
+        for script in other:
+            for name, level, block in self.block_iter(script):
+                if name == "show" or name == "hide":
+                    if not changed:
+                        (changed, initialized) = (True, False)
         return (changed, initialized)
 
-    def sprite_changes(self, sprite, global_variables):
+    def sprite_changes(self, sprite):
         sprite_attr = dict()
         general = ["position", "orientation", "costume", "size"]
         for property in general:
             sprite_attr[property] = self.gen_change(
                 sprite, self.BLOCKMAPPING[property])
         sprite_attr["visibility"] = self.visibility_change(sprite)
-        var_changes, global_variables = self.variable_change(
-            sprite, global_variables)
-        sprite_attr["variables"] = var_changes
-        return sprite_attr, global_variables
+        return sprite_attr
 
     @PluginWrapper(html=InitializationView)
     def analyze(self, scratch):
         attribute_changes = dict()
-        global_vars = dict()
-        for key in scratch.stage.vars.keys():
-            global_vars[key] = "uninitialized"
         for sprite in scratch.stage.sprites:
-            sprite_attr, global_variables = self.sprite_changes(
-                sprite, global_vars)
-            attribute_changes[sprite.name] = sprite_attr
-        stage_changes = dict()
-        stage_changes["background"] = self.gen_change(
+            attribute_changes[sprite.name] = self.sprite_changes(sprite)
+        attribute_changes["stage"] = {}
+        attribute_changes["stage"]["background"] = self.gen_change(
             scratch.stage, self.BLOCKMAPPING["costume"])
-        # check global/stage variables
-        # right now we're not looking at what the stage changes
-        var_change, global_vars = self.variable_change(
-            scratch.stage, global_vars)
-        if "changed" in global_vars.values():
-            global_change = (True, False)
-        elif "set" in global_vars.values():
-            global_change = (True, True)
-        else:
-            global_change = (False, False)
-        stage_changes["global variables"] = global_change
-        attribute_changes["stage"] = stage_changes
+        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
+            (group, project) = (scratch.group, scratch.project)
+            self.initialization[(group, project)] = copy.deepcopy(
+                attribute_changes)
         return self.view_data(initialized=attribute_changes)
 
 
@@ -163,24 +158,24 @@ class Variables(PluginController):
     """
     def local_vars(self, sprite):
         (greenflag, other) = self.pull_hat(
-            "When green flag clicked", list(sprite.scripts))
+            "when green flag clicked", list(sprite.scripts))
         variables = dict()
         bandw = False
         for var in sprite.vars.keys():
             variables[var] = "unused"
         for script in greenflag:
             for name, level, block in self.block_iter(script.blocks):
-                if name == 'doBroadcastAndWait':
+                if name == "broadcast %e and wait":
                     bandw = True
-                if name == 'setVariable' and level == 0 and not bandw:
+                if name == "set %v to %s" and level == 0 and not bandw:
                     if block.args[0] in variables.keys():
                         variables[block.args[0]] = 'set'
-                elif name == 'setVariable' or name == 'changeVariable':
+                elif name == "set %v to %s" or name == "change %v by %n":
                     if (block.args[0], "unused") in variables.items():
                         variables[block.args[0]] = "changed"
         for script in other:
             for name, level, block in self.block_iter(script.blocks):
-                if name == 'setVariable' or name == 'changeVariable':
+                if name == "set %v to %s" or name == "change %v by %n":
                     if (block.args[0], "unused") in variables.items():
                         variables[block.args[0]] = "changed"
         return variables
@@ -189,34 +184,27 @@ class Variables(PluginController):
         bandw = False
         variables = dict()
         for key in scratch.stage.vars.keys():
-            variables[key] = "unused"
-        greenflag = []
+            variables[key] = "unchanged"
+        gf = []
         other = []
-        for sprite in scratch.stage.sprites:
-            (gf, o) = self.pull_hat(
-                "When green flag clicked", list(sprite.scripts))
-            greenflag.extend(gf)
-            other.extend(o)
-        if len(scratch.stage.scripts) != 0:
-            (gf, o) = self.pull_hat(
-                "When green flag clicked", list(scratch.stage.scripts))
-            greenflag.extend(gf)
-            other.extend(o)
-        for script in greenflag:
+        scripts = scratch.stage.scripts[:]
+        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
+        (gf, other) = self.pull_hat("when green flag clicked", scripts)
+        for script in gf:
             for name, level, block in self.block_iter(script.blocks):
-                if name == 'doBroadcastAndWait':
+                if name == "broadcast %e and wait":
                     bandw = True
-                if name == 'setVariable' and level == 0 and not bandw:
+                if name == "set %v to %s" and level == 0 and not bandw:
                     if block.args[0] in variables.keys():
                         variables[block.args[0]] = 'set'
-                elif name == 'setVariable' or name == 'changeVariable':
-                    if (block.args[0], "unused") in variables.items():
+                elif name == "set %v to %s" or name == "change %v by %n":
+                    if (block.args[0], "unchanged") in variables.items():
                         variables[block.args[0]] = "changed"
             bandw = False
         for script in other:
             for name, level, block in self.block_iter(script.blocks):
-                if name == 'setVariable' or name == 'changeVariable':
-                    if (block.args[0], "unused") in variables.items():
+                if name == "set %v to %s" or name == "change %v by %n":
+                    if (block.args[0], "unchanged") in variables.items():
                         variables[block.args[0]] = "changed"
         return variables
 

@@ -1,6 +1,5 @@
 from collections import Counter
 import copy
-import kurt
 from . import PluginController, PluginView, PluginWrapper
 
 
@@ -53,14 +52,16 @@ class BlockTotals(PluginController):
                 file.write(str(blockcount[block]))
 
     def analyze(self, scratch):
-        self.blocks[(scratch.group, scratch.project)] = copy.deepcopy(
-            self.BLOCKCOUNTER)
+        blocks = Counter()
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
             for name, level, block in self.block_iter(script.blocks):
-                self.blocks[(scratch.group, scratch.project)].update({name: 1})
-        return self.view_data(types=self.blocks)
+                blocks.update({name: 1})
+        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
+            self.blocks[(scratch.group,
+                         scratch.project)] = copy.deepcopy(blocks)
+        return self.view_data(types=blocks)
 
 
 class DeadCodeView(PluginView):
@@ -73,8 +74,9 @@ class DeadCodeView(PluginView):
             if dynamic:
                 dead = '<p>Warning: Contains dynamic broadcast messages</p>'
             for sprite in deadcode.keys():
-                dead += self.to_scratch_blocks(
-                    sprite, deadcode[sprite])
+                if len(deadcode[sprite]) != 0:
+                    dead += self.to_scratch_blocks(
+                        sprite, deadcode[sprite])
         return dead
 
 
@@ -83,56 +85,42 @@ class DeadCode(PluginController):
 
     Shows all of the dead code for each sprite in a scratch file.
     """
-    def check_dynamic(self, scratch):
-        messages = set()
-        for sprite in scratch.stage.sprites:
-            for script in sprite.scripts:
-                for message in self.get_messages(script.blocks):
-                    messages.add(message)
-        for script in scratch.stage.scripts:
-            for message in self.get_messages(script.blocks):
-                messages.add(message)
-        if "dynamic" in messages:
-            return True
-        else:
-            return False
+    def __init__(self):
+        super(DeadCode, self).__init__()
+        self.dead = {}
 
-    def get_useless(self, blocklist):
-        useless = []
-        for block in blocklist:
-            if isinstance(block, kurt.scripts.Block):
-                if block.empty:
-                    useless.append(block)
-                else:
-                    for arg in block.args:
-                        if hasattr(arg, '__iter__'):
-                            useless.extend(self.get_useless(arg))
-                        elif isinstance(arg, kurt.scripts.Block):
-                            useless.extend(self.get_useless([arg]))
-        return useless
+    def finalize(self):
+        file = open('deadcode.txt', 'w')
+        file.write("activity, pair, dynamic?, sprites with dead code\n")
+        for ((group, project), (dynamic, sprite_dict)) in self.blocks.items():
+            file.write('\n')
+            file.write(project)
+            file.write(', ')
+            file.write(group)
+            file.write(', ')
+            file.write(dynamic)
+            for key in sprite_dict.keys():
+                file.write(', ')
+                file.write(key)
 
     @PluginWrapper(html=DeadCodeView)
     def analyze(self, scratch):
-        sprite_scripts = []
-        sprite_dict = {}
-        for sprite in scratch.stage.sprites:
-            for script in sprite.scripts:
-                if script.reachable is False:
-                    sprite_scripts.append(script)
-                else:
-                    sprite_scripts.extend(self.get_useless(script.blocks))
-            if len(sprite_scripts) != 0:
-                sprite_dict[sprite.name] = sprite_scripts
-                sprite_scripts = []
-        for script in scratch.stage.scripts:
-            if script.reachable is False:
-                sprite_scripts.append(script)
-            else:
-                sprite_scripts.extend(self.get_useless(script.blocks))
-        if len(sprite_scripts) != 0:
-            sprite_dict["stage"] = sprite_scripts
-        dynamic = self.check_dynamic(scratch)
-        return self.view_data(deadcode=(dynamic, sprite_dict))
+        sprites = {}
+        scripts = scratch.stage.scripts[:]
+        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
+        for script in scripts:
+            if script.morph.name not in sprites.keys():
+                sprites[script.morph.name] = []
+            if not script.reachable:
+                sprites[script.morph.name].append(script)
+        if "dynamic" in self.get_broadcast(scripts):
+            dynamic = True
+        else:
+            dynamic = False
+        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
+            self.dead[(scratch.group,
+                       scratch.project)] = (dynamic, copy.deepcopy(sprites))
+        return self.view_data(deadcode=(dynamic, sprites))
 
 
 class ScriptImagesView(PluginView):
