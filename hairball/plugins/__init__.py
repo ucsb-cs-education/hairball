@@ -22,9 +22,9 @@ class PluginController(object):
     your plugin.
     """
     BLOCKMAPPING = {"position": set([("move %n steps", "relative"),
-                                     ("go to x: %n y: %n", "absolute"),
+                                     ("go to x:%n y:%n", "absolute"),
                                      ("go to %m", "relative"),
-                                     ("glide %n secs to x: %n y: %n",
+                                     ("glide %n secs to x:%n y:%n",
                                       "relative"),
                                      ("change x by %n", "relative"),
                                      ("x position", "absolute"),
@@ -41,7 +41,7 @@ class PluginController(object):
                                     ("switch to costume %l", "absolute"),
                                     ("next costume", "relative")]),
                     "size": set([("change size by %n", "relative"),
-                                 ("set size to %n %", "absolute")])}
+                                 ("set size to %n", "absolute")])}
 
     @staticmethod
     def block_iter(block_list, level=0):
@@ -75,7 +75,8 @@ class PluginController(object):
                         yield b
 
     @staticmethod
-    def get_broadcast(scripts):
+    def get_broadcast(script_list):
+        scripts = script_list[:]
         messages = {}
         message = ""
         for script in scripts:
@@ -94,7 +95,8 @@ class PluginController(object):
         return messages
 
     @staticmethod
-    def broadcastreceive(scripts):
+    def broadcastreceive(script_list):
+        scripts = script_list[:]
         receive = PluginController.get_receive(scripts)
         never_r = PluginController.get_broadcast(scripts)
         never_b = {}
@@ -116,8 +118,9 @@ class PluginController(object):
         return True
 
     @staticmethod
-    def get_receive(scripts):
+    def get_receive(script_list):
         messages = {}
+        scripts = script_list[:]
         for script in scripts:
             if PluginController.hat_type(script) == "when I receive %e":
                 message = script.blocks[0].args[0].lower()
@@ -175,8 +178,8 @@ class PluginController(object):
     @staticmethod
     def pull_hat(hat_name, scripts):
         hat_scripts = []
-        other = scripts
-        for script in scripts:
+        other = scripts[:]
+        for script in other:
             if PluginController.hat_type(script) == hat_name:
                 hat_scripts.append(script)
                 other.remove(script)
