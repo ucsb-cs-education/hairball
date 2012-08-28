@@ -117,7 +117,7 @@ class BroadcastReceive(PluginController):
 
     def finalize(self):
         file = open('broadcastreceive.txt', 'w')
-        file.write("activity, pair:  error 0; error 1; error 2; error 3")
+        file.write("activity, pair: errors")
         for ((group, project), mistakes) in self.broadcast.items():
             file.write('\n{0}, {1}: '.format(project, group))
             if len(mistakes) != 0:
@@ -212,8 +212,17 @@ class SoundSynch(PluginController):
                         if not self.check_empty(last_block.args[0]):
                             if name == "play sound %S until done":
                                 errors.extend(self.check(gen))
+                    elif last_name == "think %s":
+                        if not self.check_empty(last_block.args[0]):
+                            if name == "play sound %S until done":
+                                errors.extend(self.check(gen))
                     elif last_name == "play sound %S":
                         if name == "say %s for %n secs":
+                            if not self.check_empty(block.args[0]):
+                                errors.append('2')
+                            else:
+                                errors.append('1')
+                        elif name == "think %s for %n secs":
                             if not self.check_empty(block.args[0]):
                                 errors.append('2')
                             else:
@@ -224,6 +233,11 @@ class SoundSynch(PluginController):
                         if not self.check_empty(block.args[0]):
                             errors.append('1')
                     elif "play sound %S" in name and "say %s" in last_name:
+                        errors.append('1')
+                    elif "play sound %S" in last_name and "think %s" in name:
+                        if not self.check_empty(block.args[0]):
+                            errors.append('1')
+                    elif "play sound %S" in name and "think %s" in last_name:
                         errors.append('1')
                 (last_name, last_level, last_block) = (name, level, block)
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):

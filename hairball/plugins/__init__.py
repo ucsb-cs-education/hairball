@@ -101,6 +101,10 @@ class PluginController(object):
         never_r = PluginController.get_broadcast(scripts)
         never_b = {}
         for (message, scripts) in receive.items():
+#            if message == "final scene":
+#                del receive[message]
+#                if message in never_r.keys():
+#                    del never_r[message]
             if message in never_r.keys():
                 del never_r[message]
             else:
