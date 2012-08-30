@@ -1,4 +1,5 @@
 import copy
+from collections import Counter
 from . import PluginController, PluginView, PluginWrapper
 
 
@@ -26,68 +27,100 @@ class Animation(PluginController):
 
     def finalize(self):
         file = open('animation.txt', 'w')
-        file.write("activity, pair: rotation animation")
-        for ((group, project), sprites) in self.animation.items():
+        file.write("activity, pair: 3 2 1 0")
+        for ((group, project), results) in self.animation.items():
             file.write('\n{0}, {1}: '.format(project, group))
-            attributes = self.format_all(sprites)
-            for attr in attributes:
-                file.write(",".join(attr))
-                file.write(" ")
+            file.write('{0} {1} {2} {3}'.format(
+                    results['3'], results['2'],
+                    results['1'], results['0']))
 
-    def format_all(self, sprites):
-        rotation = []
-        animation = []
-        if len(sprites) == 0:
-            return rotation, animation
-        for (sprite, checks) in sprites.items():
-            for (r, a) in checks:
-                rotation.append(str(int(r)))
-                animation.append(str(int(a)))
-        return rotation, animation
+    def check_block(self, name, block):
+        movement = False
+        rotation = False
+        costume = False
+        timing = False
+        switch = False
+        if block.type.flag == 't':
+            timing = True
+        if "turn" in name:
+            rotation = True
+        elif block.type.category == "motion":
+            if "change" in name or "go to" in name:
+                movement = True
+            elif "move" in name or "set" in name:
+                movement = True
+        if name == "next costume":
+            costume = True
+        if name == "switch to costume %l":
+            switch = True
+        return (movement, rotation, costume, timing, switch)
 
     def check_loop(self, level, gen):
         movement = False
         rotation = False
         costume = False
         timing = False
-        switch_to = False
+        switch = False
         (name, l, block) = next(gen, ("wtf", -1, ""))
         while l == level:
-            if block.type.flag == 't':
-                timing = True
-            if "turn" in name:
+            (m, r, c, t, s) = self.check_block(name, block)
+            if m and not movement:
+                movement = True
+            if r and not rotation:
                 rotation = True
-            elif block.type.category == "motion":
-                if "change" in name or "go to" in name:
-                    movement = True
-                elif "move" in name or "set" in name:
-                    movement = True
-            if name == "next costume":
+            if c and not costume:
                 costume = True
-            if name == "switch to costume %l":
-                if switch_to:
+            if t and not timing:
+                timing = True
+            if s:
+                if switch:
                     costume = True
+                    switch = False
                 else:
-                    switch_to = True
+                    switch = True
             (name, l, block) = next(gen, ("", -1, ""))
-        animation = timing and costume and movement
-        return (rotation, animation)
+        if timing and (costume or rotation):
+            return '3'
+        elif rotation or (timing and movement):
+            return '2'
 
     @PluginWrapper(html=AnimationView)
     def analyze(self, scratch):
-        animation = {}
+        stop_check = set(["broadcast %e and wait", 'forever if %b',
+                          'if %b', 'if %b else', 'wait until %b',
+                          'repeat until %b', 'forever',
+                          'repeat %n', 'broadcast %e'])
+        animation = Counter()
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
+            timing = False
+            costume1 = False
+            costume = False
             gen = self.block_iter(script.blocks)
             for name, level, block in gen:
+                if name in stop_check:
+                    timing = False
+                    costume1 = False
+                    costume = False
                 if "forever" in name or "repeat" in name:
-                    (r, a) = self.check_loop(level + 1, gen)
-                    if (r, a) != (False, False):
-                        if script.morph.name not in animation.keys():
-                            animation[script.morph.name] = [(r, a)]
+                    animation.update({
+                            self.check_loop(level + 1, gen): 1})
+                else:
+                    (m, r, c, t, s) = self.check_block(name, block)
+                    if t and not timing:
+                        timing = True
+                    if c or s:
+                        if not costume1:
+                            costume1 = True
                         else:
-                            animation[script.morph.name].append((r, a))
+                           costume1 = False
+                           costume = True
+                    if costume and timing:
+                        animation.update({'0': 1})
+                        costume = False
+                        costume1 = False
+                        timing = False
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
             self.animation[(scratch.group,
                             scratch.project)] = copy.deepcopy(animation)
