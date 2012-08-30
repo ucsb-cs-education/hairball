@@ -75,41 +75,18 @@ class PluginController(object):
                         yield b
 
     @staticmethod
-    def get_broadcast(script_list):
-        scripts = script_list[:]
-        messages = {}
+    def get_broadcast(script):
+        messages = set()
         message = ""
-        for script in scripts:
-            gen = PluginController.block_iter(script.blocks)
-            for name, level, block in gen:
-                if "broadcast %e" in name:
-                    if isinstance(block.args[0], kurt.scripts.Block):
-                        message = "dynamic"
-                    else:
-                        message = block.args[0].lower()
-                    if message not in messages.keys():
-                        messages[message] = set()
-                        messages[message].add(script)
-                    else:
-                        messages[message].add(script)
+        gen = PluginController.block_iter(script.blocks)
+        for name, level, block in gen:
+            if "broadcast %e" in name:
+                if isinstance(block.args[0], kurt.scripts.Block):
+                    message = "dynamic"
+                else:
+                    message = block.args[0].lower()
+                messages.add(message)
         return messages
-
-    @staticmethod
-    def broadcastreceive(script_list):
-        scripts = script_list[:]
-        receive = PluginController.get_receive(scripts)
-        never_r = PluginController.get_broadcast(scripts)
-        never_b = {}
-        for (message, scripts) in receive.items():
-#            if message == "final scene":
-#                del receive[message]
-#                if message in never_r.keys():
-#                    del never_r[message]
-            if message in never_r.keys():
-                del never_r[message]
-            else:
-                never_b[message] = scripts
-        return (never_r, never_b)
 
     @staticmethod
     def check_empty(word):
@@ -120,18 +97,6 @@ class PluginController(object):
                 if letter != " ":
                     return False
         return True
-
-    @staticmethod
-    def get_receive(script_list):
-        messages = {}
-        scripts = script_list[:]
-        for script in scripts:
-            if PluginController.hat_type(script) == "when I receive %e":
-                message = script.blocks[0].args[0].lower()
-                if message not in messages.keys():
-                    messages[message] = set()
-                messages[message].add(script)
-        return messages
 
     @staticmethod
     def mark_scripts(scratch):
@@ -156,7 +121,7 @@ class PluginController(object):
                 processing.add(script)
         while len(processing) != 0:
             script = processing.pop()
-            for message in PluginController.get_broadcast([script]).keys():
+            for message in PluginController.get_broadcast(script):
                 if message in pending.keys():
                     for s in pending[message]:
                         processing.add(s)

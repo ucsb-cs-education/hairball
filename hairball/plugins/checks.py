@@ -117,32 +117,96 @@ class BroadcastReceive(PluginController):
 
     def finalize(self):
         file = open('broadcastreceive.txt', 'w')
-        file.write("activity, pair: errors")
+        file.write("activity, pair: 3 2 1.5 1 0")
         for ((group, project), mistakes) in self.broadcast.items():
             file.write('\n{0}, {1}: '.format(project, group))
             if len(mistakes) != 0:
-                for (error, messages) in mistakes.items():
-                    if len(messages) != 0:
-                        for x in range(len(messages)):
-                            file.write("{0},".format(error))
+                if project == "06_MayanConversation":
+                    self.mayan(mistakes)
+                zero = len(mistakes[2]) + len(mistakes[3]) + len(mistakes[1])
+                one_and_two = len(mistakes[4] & mistakes[5])
+                one = len(mistakes[4]) - one_and_two
+                two = len(mistakes[5]) - one_and_two
+                three = len(mistakes[6])
+                file.write("{0} {1} {2} {3} {4}".format(
+                        three, two, one_and_two, one, zero))
 
-    @PluginWrapper(html=BroadcastReceiveView)
+    def mayan(self, mistakes):
+        for x in range(7):
+            if "final scene" in mistakes[x]:
+                mistakes[x].remove("final scene")
+        return mistakes
+
+    def get_receive(self, script_list):
+        messages = {}
+        scripts = script_list[:]
+        for script in scripts:
+            if PluginController.hat_type(script) == "when I receive %e":
+                message = script.blocks[0].args[0].lower()
+                if message not in messages.keys():
+                    messages[message] = set()
+                messages[message].add(script)
+        return messages
+
+    def broadcast_scripts(self, script_list):
+        scripts = script_list[:]
+        messages = {}
+        for script in scripts:
+            messages[script] = self.get_broadcast(script)
+        return messages
+
     def analyze(self, scratch):
         all_scripts = scratch.stage.scripts[:]
         [all_scripts.extend(x.scripts) for x in scratch.stage.sprites]
         errors = {}
         errors[0] = set()  # sprites who broadcast dynamic messages
         errors[1] = set()  # message is broadcasted in dead code
-        errors[2] = set()  # meessage is never broadcasted
+        errors[2] = set()  # message is never broadcast
         errors[3] = set()  # message is never received
-        errors[4] = set()  # message is circularly broadcast; TO DO
-        (errors[3], errors[2]) = self.broadcastreceive(all_scripts)
-        for (message, scripts) in self.get_broadcast(all_scripts).items():
-            for script in scripts:
-                if not script.reachable:  # broadcast in dead code
-                    errors[1].add(message)
-            if message == "dynamic":  # dynamic broadcast
-                errors[0].add(script.morph.name)
+        errors[4] = set()  # message has parallel scripts with timing
+        errors[5] = set()  # messages are broadcast in scripts w/other broadcasts
+        errors[6] = set()  # working
+        errors[7] = set()  # TO DO
+        broadcast = self.broadcast_scripts(all_scripts)
+        receive = self.get_receive(all_scripts)
+        received_messages = set()
+        for message in receive.keys():
+            received_messages.add(message)
+            errors[3].add(message)
+        # first remove all dynamic broadcast messages
+        for script, messages in broadcast.items():
+            for message in messages:
+                if message == "dynamic":
+                    errors[0].add(script.morph.name)
+                    del message
+        # then remove messages that aren't received or broadcast
+                elif message in received_messages:
+                    if message in errors[3]:
+                        errors[3].remove(message)
+                else:
+                    errors[2].add(message)
+        for message in receive.keys():
+            if message not in received_messages:
+                del receive[message]
+            if message in errors[3]:
+                del receive[message]
+        # now find error 4
+        for message, scripts in receive.items():
+            if len(scripts) > 1:
+                for script in scripts:
+                    for name, level, block in self.block_iter(script.blocks):
+                        if block.type.flag == 't':
+                            errors[4].add(message)
+        # now find error 5
+        for script, messages in broadcast.items():
+            if len(messages) > 1:
+                for message in messages:
+                    if message in receive.keys():
+                        errors[5].add(message)
+        # finally, get the working messages
+        for message in receive.keys():
+            if message not in errors[4] and message not in errors[5]:
+                errors[6].add(message)
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
             self.broadcast[(scratch.group,
                             scratch.project)] = errors
