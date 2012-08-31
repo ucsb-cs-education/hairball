@@ -150,19 +150,16 @@ class BroadcastReceive(PluginController):
 
     def finalize(self):
         file = open('broadcastreceive.txt', 'w')
-        file.write("activity, pair: 3 2 1.5 1 0")
+        file.write("activity, pair: 3 1 0")
         for ((group, project), mistakes) in self.broadcast.items():
             file.write('\n{0}, {1}: '.format(project, group))
             if len(mistakes) != 0:
                 if project == "06_MayanConversation":
                     self.mayan(mistakes)
                 zero = len(mistakes[2]) + len(mistakes[3]) + len(mistakes[1])
-                one_and_two = len(mistakes[4] & mistakes[5])
-                one = len(mistakes[4]) - one_and_two
-                two = len(mistakes[5]) - one_and_two
+                one = len(mistakes[4] | mistakes[5])
                 three = len(mistakes[6])
-                file.write("{0} {1} {2} {3} {4}".format(
-                        three, two, one_and_two, one, zero))
+                file.write("{0} {1} {2}".format(three, one, zero))
 
     def mayan(self, mistakes):
         for x in range(7):
@@ -197,6 +194,7 @@ class BroadcastReceive(PluginController):
         errors[2] = set()  # message is never broadcast
         errors[3] = set()  # message is never received
         errors[4] = set()  # message has parallel scripts with timing
+        # below: maybe check all scripts with the same hat block
         errors[5] = set()  # messages are broadcast in scripts w/other broadcasts
         errors[6] = set()  # working
         errors[7] = set()  # TO DO
@@ -271,33 +269,38 @@ class SoundSynch(PluginController):
 
     def finalize(self):
         file = open('soundsynch.txt', 'w')
-        file.write("activity, pair: sound synchronization")
+        file.write("activity, pair: 3 2 1 0")
         for ((group, project), results) in self.sound.items():
             file.write('\n{0}, {1}: '.format(project, group))
             if len(results) != 0:
-                file.write(",".join(results))
+                file.write("{0} {1} {2} {3}".format(
+                        results['3'], results['2'],
+                        results['1'], results['0']))
 
     def check(self, gen):
-        errors = []
+        errors = Counter()
         (name, level, block) = next(gen, ("", 0, ""))
         if name == "say %s" or name == "think %s":
             # counts as blank if it's a string made up of spaces
             if self.check_empty(block.args[0]):
-                return '3'
+                errors.update({'3': 1})
+                return errors
             else:
                 (name, level, block) = next(gen, ("", 0, ""))
                 if name == "play sound %S until done":
-                    errors.append('3')
-                    errors.extend(self.check(gen))
+                    errors.update({'3': 1})
+                    errors += self.check(gen)
                     return errors
                 else:
-                    return '1'
+                    errors.update({'1': 1})
+                    return errors
         else:
-            return '1'
+            errors.update({'1': 1})
+            return errors
 
     @PluginWrapper(html=SoundSynchView)
     def analyze(self, scratch):
-        errors = []
+        errors = Counter()
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
@@ -308,34 +311,34 @@ class SoundSynch(PluginController):
                     if last_name == "say %s":
                         if not self.check_empty(last_block.args[0]):
                             if name == "play sound %S until done":
-                                errors.extend(self.check(gen))
+                                errors += self.check(gen)
                     elif last_name == "think %s":
                         if not self.check_empty(last_block.args[0]):
                             if name == "play sound %S until done":
-                                errors.extend(self.check(gen))
+                                errors +=self.check(gen)
                     elif last_name == "play sound %S":
                         if name == "say %s for %n secs":
                             if not self.check_empty(block.args[0]):
-                                errors.append('2')
+                                errors.update({'2': 1})
                             else:
-                                errors.append('1')
+                                errors.update({'1': 1})
                         elif name == "think %s for %n secs":
                             if not self.check_empty(block.args[0]):
-                                errors.append('2')
+                                errors.update({'2': 1})
                             else:
-                                errors.append('1')
+                                errors.update({'1': 1})
                         elif name == "say %s":
-                            errors.append('1')
+                            errors.update({'1': 1})
                     elif "play sound %S" in last_name and "say %s" in name:
                         if not self.check_empty(block.args[0]):
-                            errors.append('1')
+                            errors.update({'1': 1})
                     elif "play sound %S" in name and "say %s" in last_name:
-                        errors.append('1')
+                        errors.update({'1': 1})
                     elif "play sound %S" in last_name and "think %s" in name:
                         if not self.check_empty(block.args[0]):
-                            errors.append('1')
+                            errors.update({'1': 1})
                     elif "play sound %S" in name and "think %s" in last_name:
-                        errors.append('1')
+                        errors.update({'1': 1})
                 (last_name, last_level, last_block) = (name, level, block)
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
             self.sound[(scratch.group,

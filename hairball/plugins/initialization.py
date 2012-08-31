@@ -33,14 +33,16 @@ class Initialization(PluginController):
 
     def finalize(self):
         file = open('initialization.txt', 'w')
-        file.write("activity, pair: costume visibility")
-        file.write(" orientation position size background")
+        file.write("activity, pair: background costume")
+        file.write(" orientation position size visibility")
         for ((group, project), sprites) in self.initialization.items():
             file.write('\n{0}, {1}: '.format(project, group))
             properties = self.sort_by_prop(sprites)
-            for property in ["costume", "visibility", "orientation",
-                             "position", "size", "background"]:
-                file.write("{0} ".format(str(properties[property])))
+            file.write("{0} {1} {2} {3} {4} {5}".format(
+                    properties["background"], properties["costume"],
+                    properties["orientation"], properties["position"],
+                    properties["size"], properties["visibility"]))
+
 
     def sort_by_prop(self, sprites):
         init = {}
@@ -63,16 +65,15 @@ class Initialization(PluginController):
                     init[property] = 0
         return init
 
-    def gen_change(self, sprite, property):
+    def gen_change(self, sprite, gf, other, property):
         changed = False
         initialized = False
         bandw = False
-        # go through all the greenflag scripts FIRST, then others
-        (gf, other) = self.pull_hat("when green flag clicked", sprite.scripts)
         # first check the green flag scripts
         for script in gf:
             bandw = False
             for name, level, block in self.block_iter(script.blocks):
+                print name
                 if name == "broadcast %e and wait":
                     bandw = True
                 temp = set([(name, "absolute"),
@@ -94,11 +95,10 @@ class Initialization(PluginController):
                     return (True, False)
         return (changed, initialized)
 
-    def visibility_change(self, sprite):
+    def visibility_change(self, sprite, gf, other):
         bandw = False
         changed = False
         initialized = False
-        (gf, other) = self.pull_hat("when green flag clicked", sprite.scripts)
         for script in gf:
             bandw = False
             for name, level, block in self.block_iter(script):
@@ -119,10 +119,12 @@ class Initialization(PluginController):
     def sprite_changes(self, sprite):
         sprite_attr = dict()
         general = ["position", "orientation", "costume", "size"]
+        (gf, other) = self.pull_hat("when green flag clicked", sprite.scripts)
+        print sprite.name, gf
         for property in general:
             sprite_attr[property] = self.gen_change(
-                sprite, self.BLOCKMAPPING[property])
-        sprite_attr["visibility"] = self.visibility_change(sprite)
+                sprite, gf, other, self.BLOCKMAPPING[property])
+        sprite_attr["visibility"] = self.visibility_change(sprite, gf, other)
         return sprite_attr
 
     @PluginWrapper(html=InitializationView)
@@ -131,8 +133,9 @@ class Initialization(PluginController):
         for sprite in scratch.stage.sprites:
             attribute_changes[sprite.name] = self.sprite_changes(sprite)
         attribute_changes["stage"] = {}
+        (gf, other) = self.pull_hat("when green flag clicked", scratch.stage.scripts)
         attribute_changes["stage"]["background"] = self.gen_change(
-            scratch.stage, self.BLOCKMAPPING["costume"])
+            scratch.stage, gf, other, self.BLOCKMAPPING["costume"])
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
             (group, project) = (scratch.group, scratch.project)
             self.initialization[(group, project)] = copy.deepcopy(

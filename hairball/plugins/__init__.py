@@ -30,10 +30,8 @@ class PluginController(object):
                                      ("x position", "absolute"),
                                      ("change y by %n", "relative"),
                                      ("y position", "absolute")]),
-                    "orientation": set([("turn clockwise %n degrees",
-                                         "relative"),
-                                        ("turn counterclockwise %n degrees",
-                                         "relative"),
+                    "orientation": set([("turn cw %n degrees", "relative"),
+                                        ("turn ccw %n degrees", "relative"),
                                         ("point in direction %d", "absolute"),
                                         ("point towards %m", "relative")]),
                     "costume": set([("switch to background %l", "absolute"),
@@ -145,13 +143,15 @@ class PluginController(object):
             return "No Hat"
 
     @staticmethod
-    def pull_hat(hat_name, scripts):
+    def pull_hat(hat_name, all_scripts):
         hat_scripts = []
-        other = scripts[:]
-        for script in other:
+        other = []
+        scripts = all_scripts[:]
+        for script in scripts:
             if PluginController.hat_type(script) == hat_name:
                 hat_scripts.append(script)
-                other.remove(script)
+            else:
+                other.append(script)
         return (hat_scripts, other)
 
     @staticmethod
