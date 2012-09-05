@@ -39,7 +39,7 @@ class PluginController(object):
                                     ("switch to costume %l", "absolute"),
                                     ("next costume", "relative")]),
                     "size": set([("change size by %n", "relative"),
-                                 ("set size to %n", "absolute")])}
+                                 ("set size to %n%", "absolute")])}
 
     @staticmethod
     def block_iter(block_list, level=0):
