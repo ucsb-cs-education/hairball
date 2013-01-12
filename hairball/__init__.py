@@ -1,3 +1,10 @@
+"""Hairball
+
+Hairball  is a plugin-able framework useful for static analysis of Scratch
+projects.
+
+"""
+
 import kurt
 import os
 import sys
@@ -9,6 +16,14 @@ __version__ = '0.1a'
 
 
 class Hairball(object):
+
+    """The Hairball exeuction class.
+
+    This class is responsible for parsing command line arguments, loading the
+    plugins, and running the plugins on the specified scratch files.
+
+    """
+
     def __init__(self, argv):
         self.plugins = []
         description = ('PATH can be either the path to a scratch file, or a '
@@ -40,10 +55,21 @@ class Hairball(object):
                              .format(self.options.plugin_dir))
 
     def finalize(self):
+        """Indicate that analysis is complete.
+
+        Calling finalize  will call the finalize method of all plugins thus
+        allowing them to output any aggregate results or perform any clean-up.
+
+        """
         for plugin in self.plugins:
             plugin.finalize()
 
     def initialize_plugins(self):
+        """Attempt to Load and initialize all the plugins.
+
+        Any issues loading plugins will be output to stderr.
+
+        """
         for plugin_name in self.options.plugin:
             parts = plugin_name.split('.')
             if len(parts) > 1:
@@ -85,6 +111,7 @@ class Hairball(object):
             sys.exit(1)
 
     def process(self):
+        """Start the analysis."""
         scratch_files = []
         while self.args:
             filename = self.args.pop()
@@ -102,10 +129,11 @@ class Hairball(object):
             print filename
             scratch = kurt.ScratchProjectFile(filename)
             for plugin in self.plugins:
-                plugin._process(scratch)
+                plugin._process(scratch)  # pylint: disable-msg=W0212
 
 
 def main():
+    """The entrypoint for the `hairball` command installed via setup.py."""
     hairball = Hairball(sys.argv[1:])
     hairball.initialize_plugins()
     hairball.process()

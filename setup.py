@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+"""Package setup script suitable for the cheeseshop."""
 import os
 import re
 from setuptools import setup
+
 
 PACKAGE_NAME = 'hairball'
 
