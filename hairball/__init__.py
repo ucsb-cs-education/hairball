@@ -8,7 +8,7 @@ from hairball.plugins import PluginController
 __version__ = '0.1a'
 
 
-class ScratchAnalysis(object):
+class Hairball(object):
     def __init__(self, argv):
         self.plugins = []
         description = ('PATH can be either the path to a scratch file, or a '
@@ -62,6 +62,7 @@ class ScratchAnalysis(object):
                     module_name = '{0}.{1}'.format(package, module_name)
                 try:
                     module = __import__(module_name, fromlist=[class_name])
+                    # Initializes the plugin by calling its constructor
                     plugin = getattr(module, class_name)()
 
                     # Verify plugin is of the correct class
@@ -105,7 +106,7 @@ class ScratchAnalysis(object):
 
 
 def main():
-    sa = ScratchAnalysis(sys.argv[1:])
-    sa.initialize_plugins()
-    sa.process()
-    sa.finalize()
+    hairball = Hairball(sys.argv[1:])
+    hairball.initialize_plugins()
+    hairball.process()
+    hairball.finalize()
