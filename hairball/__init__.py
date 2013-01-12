@@ -2,6 +2,7 @@ import kurt
 import os
 import sys
 from optparse import OptionParser
+from hairball.plugins import PluginController
 
 
 __version__ = '0.1a'
@@ -14,14 +15,29 @@ class ScratchAnalysis(object):
                        'directory containing scratch files. Multiple PATH '
                        'arguments can be provided.')
         parser = OptionParser(usage='%prog -p PLUGIN_NAME [options] PATH...',
-                              description=description)
-        parser.add_option('-p', '--plugin', action='append')
+                              description=description,
+                              version='%prog {0}'.format(__version__))
+        parser.add_option('-d', '--plugin-dir', metavar='DIR',
+                          help=('Specify the path to a directory containing '
+                                'plugins. Plugins in this directory take '
+                                'precedence over similarly named plugins '
+                                'included with Hairball.'))
+        parser.add_option('-p', '--plugin', action='append',
+                          help=('Use the named plugin to perform analysis. '
+                                'This option can be provided multiple times.'))
         self.options, self.args = parser.parse_args(argv)
 
         if not self.options.plugin:
             parser.error('At least one plugin must be specified via -p.')
         if not self.args:
             parser.error('At least one PATH must be provided.')
+
+        if self.options.plugin_dir:
+            if os.path.isdir(self.options.plugin_dir):
+                sys.path.append(self.options.plugin_dir)
+            else:
+                parser.error('`{0}` is not a directory'
+                             .format(self.options.plugin_dir))
 
     def finalize(self):
         for plugin in self.plugins:
@@ -38,35 +54,52 @@ class ScratchAnalysis(object):
                 module_name = parts[0]
                 class_name = parts[0].title()
 
-            try:
-                module = __import__('hairball.plugins.{0}'.format(module_name),
-                                    fromlist=[class_name])
-                self.plugins.append(getattr(module, class_name)())
-            except (AttributeError, ImportError):
-                print 'Not a plugin: {!r}'.format(plugin_name)
-                continue
+            # First try to load plugins from the passed in plugins_dir and then
+            # from the hairball.plugins package.
+            plugin = None
+            for package in (None, 'hairball.plugins'):
+                if package:
+                    module_name = '{0}.{1}'.format(package, module_name)
+                try:
+                    module = __import__(module_name, fromlist=[class_name])
+                    plugin = getattr(module, class_name)()
 
+                    # Verify plugin is of the correct class
+                    if not isinstance(plugin, PluginController):
+                        sys.stderr.write('Invalid type found for plugin `{0}` '
+                                         '{1}\n'.format(plugin_name,
+                                                        type(plugin)))
+                        plugin = None
+                    else:
+                        break
+                except (ImportError, AttributeError):
+                    pass
+            if plugin:
+                self.plugins.append(plugin)
+            else:
+                sys.stderr.write('Cannot find plugin `{0}`\n'
+                                 .format(plugin_name))
         if not self.plugins:
-            print 'No plugins loaded. Goodbye!'
+            sys.stderr.write('No plugins loaded. Goodbye!\n')
             sys.exit(1)
 
     def process(self):
-        sbfiles = []
+        scratch_files = []
         while self.args:
             filename = self.args.pop()
+            # Recursively traverse directories
             if os.path.isdir(filename):
                 for temp in os.listdir(filename):
                     if temp not in ('.', '..'):
                         self.args.append(os.path.join(filename, temp))
-            elif os.path.isfile(filename) and filename.endswith('.sb'):
-                sbfiles.append(filename)
-        for file in sbfiles:
-            scratch = kurt.ScratchProjectFile(file)
-            scratch.thumbnail_saved = True
-            (pathname, file) = os.path.split(file)
-            scratch.group = file[0:2]
-            (path, dir) = os.path.split(pathname)
-            scratch.project = dir
+            elif filename.endswith('.sb') and os.path.isfile(filename):
+                scratch_files.append(filename)
+
+        # Run all the plugins on a single file at at time so we only have to
+        # open the file once.
+        for filename in sorted(scratch_files):
+            print filename
+            scratch = kurt.ScratchProjectFile(filename)
             for plugin in self.plugins:
                 plugin._process(scratch)
 
