@@ -30,9 +30,9 @@ class Animation(PluginController):
         file.write("activity, pair: 3 2 1 0")
         for ((group, project), results) in self.animation.items():
             file.write('\n{0}, {1}: '.format(project, group))
-            file.write('{0} {1} {2} {3}'.format(
-                    results[3], results[2],
-                    results[1], results[0]))
+            file.write('{0} {1} {2} {3}'
+                       .format(results[3], results[2],
+                               results[1], results[0]))
 
     def check_results(self, a):
         if a['t'] > 0:
@@ -79,7 +79,7 @@ class Animation(PluginController):
                       "move %n steps", "go to x:%n y:%n"])
         timing = set(["wait %n secs", "glide %n secs to x:%n y:%n"])
         size = set(["change size by %n", "set size to %n%"])
-        animation =costume | rotate | motion | timing | loop | size
+        animation = costume | rotate | motion | timing | loop | size
         a = Counter()
         results = Counter()
         (name, level, block) = (last, last_level, last)
@@ -96,7 +96,7 @@ class Animation(PluginController):
             if (name, "relative") in self.BLOCKMAPPING["costume"]:
                 a.update({'cr': 1})
             elif (name, "absolute") in self.BLOCKMAPPING["costume"]:
-                a.update({'ca':1})
+                a.update({'ca': 1})
             if (name, "relative") in self.BLOCKMAPPING["orientation"]:
                 a.update({'rr': 1})
             elif (name, "absolute") in self.BLOCKMAPPING["orientation"]:
@@ -115,7 +115,7 @@ class Animation(PluginController):
             (name, level, block) = next(gen, ("", 0, ""))
             # allow some exceptions
             if name not in animation and name != "":
-               if not others:
+                if not others:
                     if block.type.flag != 't':
                         last_level = level
                         (name, level, block) = next(gen, ("", 0, ""))
@@ -124,7 +124,6 @@ class Animation(PluginController):
         if count > -1:
             results.update({count: 1})
         return gen, results
-
 
     def analyze(self, scratch):
         print scratch.group
@@ -140,11 +139,12 @@ class Animation(PluginController):
                       "move %n steps", "go to x:%n y:%n"])
         timing = set(["wait %n secs", "glide %n secs to x:%n y:%n"])
         size = set(["change size by %n", "set size to %n%"])
-        animation =costume | rotate | motion | timing | loop | size
+        animation = costume | rotate | motion | timing | loop | size
         a = Counter()
         for script in scripts:
             gen = self.block_iter(script.blocks)
             name = "start"
+            level = None
             while name != "":
                 if name in animation:
                     (gen, count) = self.check_animation(name, level, gen)
@@ -224,7 +224,8 @@ class BroadcastReceive(PluginController):
         errors[3] = set()  # message is never received
         errors[4] = set()  # message has parallel scripts with timing
         # below: maybe check all scripts with the same hat block
-        errors[5] = set()  # messages are broadcast in scripts w/other broadcasts
+        errors[5] = set()  # messages are broadcast in scripts that contain
+                           # other broadcasts
         errors[6] = set()  # working
         errors[7] = set()  # TO DO
         broadcast = self.broadcast_scripts(all_scripts)
@@ -238,8 +239,8 @@ class BroadcastReceive(PluginController):
             for message in messages:
                 if message == "dynamic":
                     errors[0].add(script.morph.name)
-                    del message
-        # then remove messages that aren't received or broadcast
+                    #del message  # TODO: what was this meant to do?
+                # then remove messages that aren't received or broadcast
                 elif message in received_messages:
                     if message in errors[3]:
                         errors[3].remove(message)
@@ -302,9 +303,9 @@ class SoundSynch(PluginController):
         for ((group, project), results) in self.sound.items():
             file.write('\n{0}, {1}: '.format(project, group))
             if len(results) != 0:
-                file.write("{0} {1} {2} {3}".format(
-                        results['3'], results['2'],
-                        results['1'], results['0']))
+                file.write("{0} {1} {2} {3}"
+                           .format(results['3'], results['2'],
+                                   results['1'], results['0']))
 
     def check(self, gen):
         errors = Counter()
@@ -344,7 +345,7 @@ class SoundSynch(PluginController):
                     elif last_name == "think %s":
                         if not self.check_empty(last_block.args[0]):
                             if name == "play sound %S until done":
-                                errors +=self.check(gen)
+                                errors += self.check(gen)
                     elif last_name == "play sound %S":
                         if name == "say %s for %n secs":
                             if not self.check_empty(block.args[0]):

@@ -38,11 +38,11 @@ class Initialization(PluginController):
         for ((group, project), sprites) in self.initialization.items():
             file.write('\n{0}, {1}: '.format(project, group))
             properties = self.sort_by_prop(sprites)
-            file.write("{0} {1} {2} {3} {4} {5}".format(
-                    properties["background"], properties["costume"],
-                    properties["orientation"], properties["position"],
-                    properties["size"], properties["visibility"]))
-
+            file.write("{0} {1} {2} {3} {4} {5}"
+                       .format(properties["background"], properties["costume"],
+                               properties["orientation"],
+                               properties["position"], properties["size"],
+                               properties["visibility"]))
 
     def sort_by_prop(self, sprites):
         init = {}
@@ -133,7 +133,8 @@ class Initialization(PluginController):
         for sprite in scratch.stage.sprites:
             attribute_changes[sprite.name] = self.sprite_changes(sprite)
         attribute_changes["stage"] = {}
-        (gf, other) = self.pull_hat("when green flag clicked", scratch.stage.scripts)
+        (gf, other) = self.pull_hat("when green flag clicked",
+                                    scratch.stage.scripts)
         attribute_changes["stage"]["background"] = self.gen_change(
             scratch.stage, gf, other, self.BLOCKMAPPING["costume"])
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
