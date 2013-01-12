@@ -1,3 +1,5 @@
+"""This module provides the code necessary to write a Hairball plugin."""
+
 import kurt
 import os
 from functools import wraps
@@ -13,6 +15,7 @@ HTML_TMPL = """<div class="header" id="{key}">{name}</div>
 
 
 class PluginController(object):
+
     """The simple plugin name should go on the first comment line.
 
     The plugin description should start on the third line and can span as many
@@ -20,7 +23,11 @@ class PluginController(object):
 
     If you are seeing this message it means you need to define a docstring for
     your plugin.
+
+    TODO: Rename the class to HairballPlugin to be consistent with the paper.
+
     """
+
     BLOCKMAPPING = {"position": set([("move %n steps", "relative"),
                                      ("go to x:%n y:%n", "absolute"),
                                      ("go to %m", "relative"),
@@ -43,6 +50,11 @@ class PluginController(object):
 
     @staticmethod
     def block_iter(block_list, level=0):
+        """A generator for blocks contained in a block list.
+
+        TODO: Rename to iter_blocks to be consistent with the paper (DOH!)
+
+        """
         for block in block_list:
             if isinstance(block, kurt.scripts.Block):
                 for b in PluginController.get_block(block, level):
@@ -50,6 +62,14 @@ class PluginController(object):
 
     @staticmethod
     def get_block(block, level):
+        """A generator for a single block.
+
+        If the block contains nested blocks, this generator will also yield
+        those nested blocks.
+
+        TODO: fix or rename this function as it is misleading.
+
+        """
         if block.name == 'EventHatMorph':
             if block.args[0] == 'Scratch-StartClicked':
                 yield('when green flag clicked', 0, block)
@@ -74,6 +94,16 @@ class PluginController(object):
 
     @staticmethod
     def get_broadcast(script):
+        """Return a set of event-names that were broadcast.
+
+        The set will contain "dynamic" if any of the broadcast blocks contain a
+        parameter that is a variable.
+
+        TODO: Use something other than "dynamic" as that's a valid broadcast
+            event-name.
+        TODO: Rename to be more precise about what this returns.
+
+        """
         messages = set()
         message = ""
         gen = PluginController.block_iter(script.blocks)
@@ -88,6 +118,12 @@ class PluginController(object):
 
     @staticmethod
     def check_empty(word):
+        """Return True if there is at least one character and no spaces.
+
+        TODO: Check for the purpose. This can probably be replaced by `isalnum`
+            or at the very least simplified and moved into a helper class.
+
+        """
         if len(word) == 0:
             return True
         else:
@@ -98,6 +134,16 @@ class PluginController(object):
 
     @staticmethod
     def mark_scripts(scratch):
+        """Tag each script with attribute reachable.
+
+        The reachable attribute will be set false, for any script that does not
+        begin with a hat block. Additionally, any script that begins with a
+        "when I receive" block whose event-name doesn't appear in a
+        corresponding broadcast block is marked as unreachable.
+
+        TODO: Rename for clarity.
+
+        """
         processing = set()
         pending = {}
         scratch.static = True
@@ -132,6 +178,11 @@ class PluginController(object):
 
     @staticmethod
     def hat_type(script):
+        """Helper that returns the hat type of the block.
+
+        TODO: Refactor or remove.
+
+        """
         if script.blocks[0].name == 'EventHatMorph':
             if script.blocks[0].args[0] == 'Scratch-StartClicked':
                 return "when green flag clicked"
@@ -144,6 +195,17 @@ class PluginController(object):
 
     @staticmethod
     def pull_hat(hat_name, all_scripts):
+        """Return a tuple of lists separating reachable scripts.
+
+        The first list in the tuple are scripts that are reachable due to the
+        fact that they begin with a hat block (note: some of these may not
+        actually be reachable due to the lack of a corresponding broadcast
+        event). The second list in the tuple contains all other scripts, i.e.,
+        those that do not begin with hat blocks.
+
+        TODO: rename or remove
+
+        """
         hat_scripts = []
         other = []
         scripts = all_scripts[:]
@@ -152,14 +214,16 @@ class PluginController(object):
                 hat_scripts.append(script)
             else:
                 other.append(script)
-        return (hat_scripts, other)
+        return hat_scripts, other
 
     @staticmethod
     def save_png(image, image_name, sprite_name=''):
         """Save the image to disc and returns the relative path to the file.
 
         Use the companion function `get_image_html` in the view to get an html
-        view for the image."""
+        view for the image.
+
+        """
         path = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
         image.save_png(path)
         os.chmod(path, 0444)  # Read-only archive file
@@ -168,8 +232,7 @@ class PluginController(object):
 
     @staticmethod
     def save_png_dir(image, image_absolute_path_name):
-        """Save the image to disc and returns the absolute path to the file.
-        """
+        """Save the image to disc and return the absolute path to the file."""
 
         image.save_png(image_absolute_path_name)
         os.chmod(image_absolute_path_name, 0400)  # Read-only archive file
@@ -177,6 +240,7 @@ class PluginController(object):
 
     @property
     def description(self):
+        """Attribute that returns the plugin description from its docstring."""
         lines = []
         for line in self.__doc__.split('\n')[2:]:
             line = line.strip()
@@ -186,10 +250,17 @@ class PluginController(object):
 
     @property
     def name(self):
+        """Attribute that returns the plugin name from its docstring."""
         return self.__doc__.split('\n')[0]
 
     def finalize(self):
-        print "finalize not implemented"
+        """Overwrite this function to be notified when analysis is complete.
+
+        This is useful for saving/outputing aggregate results or performing any
+        necessary cleanup.
+
+        """
+        pass
 
     def _process(self, scratch, thumbnail_path=None, **kwargs):
         # We need to save the thumbnail somewhere; might as well do it here
@@ -204,22 +275,32 @@ class PluginController(object):
         return self.analyze(scratch, **kwargs)
 
     def view_data(self, **kwargs):
+        """Return the dictionary necessary for the PluginView classes."""
         kwargs['_name'] = self.name
         kwargs['_description'] = self.description
         return kwargs
 
 
 class PluginView(object):
+
+    """Base class for formatters of plugin results.
+
+    TODO: We should probably do away with this class completely or make its
+    use more transparent.
+
+    """
+
     IMG_TMPL = '<img class="scratch-image" src="{0}" />\n<br />\n'
     SUBHEADING = '<div class="subheading">{0}</div>'
 
     @staticmethod
     def get_image_html(relative_path):
+        """Return an html image tag."""
         return PluginView.IMG_TMPL.format(relative_path)
 
     @staticmethod
     def to_scratch_blocks(heading, scripts):
-        """Output the scripts in an html-ready scratch blocks format."""
+        """Return the scripts in an html scratch blocks format."""
         data = []
         for script in scripts:
             data.append('<div class="float scratchblocks">{0}</div>'
@@ -244,6 +325,13 @@ class PluginView(object):
 
 
 class PluginWrapper(object):
+
+    """Wrap the plugin such that the appropriate view class can be called.
+
+    TODO: Possibly remove for the same reason as removing the PluginView class
+
+    """
+
     def __init__(self, html=None, txt=None):
         self.html = html
         self.txt = txt
