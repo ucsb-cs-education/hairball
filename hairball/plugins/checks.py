@@ -209,16 +209,16 @@ class BroadcastReceive(HairballPlugin):
 
     def broadcast_scripts(self, script_list):
         scripts = script_list[:]
-        messages = {}
+        events = {}
         for script in scripts:
-            messages[script] = self.get_broadcast(script)
-        return messages
+            events[script] = self.get_broadcast_events(script)
+        return events
 
     def analyze(self, scratch):
         all_scripts = scratch.stage.scripts[:]
         [all_scripts.extend(x.scripts) for x in scratch.stage.sprites]
         errors = {}
-        errors[0] = set()  # sprites who broadcast dynamic messages
+        errors[0] = set()  # sprites who broadcast variable-events
         errors[1] = set()  # message is broadcasted in dead code
         errors[2] = set()  # message is never broadcast
         errors[3] = set()  # message is never received
@@ -234,10 +234,10 @@ class BroadcastReceive(HairballPlugin):
         for message in receive.keys():
             received_messages.add(message)
             errors[3].add(message)
-        # first remove all dynamic broadcast messages
+        # first remove all variable-event broadcast scripts
         for script, messages in broadcast.items():
             for message in messages:
-                if message == "dynamic":
+                if message is True:
                     errors[0].add(script.morph.name)
                     #del message  # TODO: what was this meant to do?
                 # then remove messages that aren't received or broadcast

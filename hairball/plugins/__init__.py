@@ -2,6 +2,7 @@
 
 import kurt
 import os
+from collections import Counter
 from functools import wraps
 from hashlib import sha1
 from random import random
@@ -87,28 +88,21 @@ class HairballPlugin(object):
                         queue.append((arg, depth))
 
     @classmethod
-    def get_broadcast(cls, script):
-        """Return a set of event-names that were broadcast.
+    def get_broadcast_events(cls, script):
+        """Return a Counter of event-names that were broadcast.
 
-        The set will contain "dynamic" if any of the broadcast blocks contain a
-        parameter that is a variable.
-
-        TODO: Use something other than "dynamic" as that's a valid broadcast
-            event-name.
-        TODO: Rename to be more precise about what this returns.
+        The Count will contain the key `True` if any of the broadcast blocks
+        contain a  parameter that is a variable.
 
         """
-        messages = set()
-        message = ""
-        gen = cls.iter_blocks(script.blocks)
-        for name, level, block in gen:
-            if "broadcast %e" in name:
+        events = Counter()
+        for name, _, block in cls.iter_blocks(script.blocks):
+            if 'broadcast %e' in name:
                 if isinstance(block.args[0], kurt.scripts.Block):
-                    message = "dynamic"
+                    events[True] += 1
                 else:
-                    message = block.args[0].lower()
-                messages.add(message)
-        return messages
+                    events[block.args[0].lower()] += 1
+        return events
 
     @staticmethod
     def check_empty(word):
@@ -159,11 +153,11 @@ class HairballPlugin(object):
                 processing.add(script)
         while len(processing) != 0:
             script = processing.pop()
-            for message in cls.get_broadcast(script):
-                if message in pending.keys():
-                    for s in pending[message]:
+            for event in cls.get_broadcast_events(script):
+                if event in pending.keys():
+                    for s in pending[event]:
                         processing.add(s)
-                    del pending[message]
+                    del pending[event]
         while len(pending) != 0:
             (message, scripts) = pending.popitem()
             for script in scripts:

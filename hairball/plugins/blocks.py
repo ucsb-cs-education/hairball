@@ -53,12 +53,12 @@ class BlockTotals(HairballPlugin):
 class DeadCodeView(PluginView):
     def view(self, data):
         dead = ""
-        (dynamic, deadcode) = data['deadcode']
+        (variable_event, deadcode) = data['deadcode']
         if len(deadcode) == 0:
             dead = '<p>No Dead Code</p>'
         else:
-            if dynamic:
-                dead = '<p>Warning: Contains dynamic broadcast messages</p>'
+            if variable_event:
+                dead = '<p>Warning: Contains variable-event broadcasts</p>'
             for sprite in deadcode.keys():
                 if len(deadcode[sprite]) != 0:
                     dead += self.to_scratch_blocks(
@@ -77,14 +77,15 @@ class DeadCode(HairballPlugin):
 
     def finalize(self):
         file = open('deadcode.txt', 'w')
-        file.write("activity, pair, dynamic?, sprites with dead code\n")
-        for ((group, project), (dynamic, sprite_dict)) in self.blocks.items():
+        file.write("activity, pair, variable_event, sprites with dead code\n")
+        for ((group, project), (variable_event, sprite_dict)) in\
+                self.blocks.items():
             file.write('\n')
             file.write(project)
             file.write(', ')
             file.write(group)
             file.write(', ')
-            file.write(dynamic)
+            file.write(variable_event)
             for key in sprite_dict.keys():
                 file.write(', ')
                 file.write(key)
@@ -99,14 +100,11 @@ class DeadCode(HairballPlugin):
                 sprites[script.morph.name] = []
             if not script.reachable:
                 sprites[script.morph.name].append(script)
-        if "dynamic" in self.get_broadcast(scripts):
-            dynamic = True
-        else:
-            dynamic = False
+        variable_event = True in self.get_broadcast_events(scripts)
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
-            self.dead[(scratch.group,
-                       scratch.project)] = (dynamic, copy.deepcopy(sprites))
-        return self.view_data(deadcode=(dynamic, sprites))
+            self.dead[(scratch.group, scratch.project)] = (
+                variable_event, copy.deepcopy(sprites))
+        return self.view_data(deadcode=(variable_event, sprites))
 
 
 class ScriptImagesView(PluginView):
