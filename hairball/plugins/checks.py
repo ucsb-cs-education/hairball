@@ -1,6 +1,6 @@
 import copy
 from collections import Counter
-from . import PluginController, PluginView, PluginWrapper
+from . import HairballPlugin, PluginView, PluginWrapper
 
 
 class AnimationView(PluginView):
@@ -15,7 +15,7 @@ class AnimationView(PluginView):
         return '<p>{0}</p>'.format(images)
 
 
-class Animation(PluginController):
+class Animation(HairballPlugin):
     """Animation
 
     Checks for possible errors relating to animation.
@@ -168,7 +168,7 @@ class BroadcastReceiveView(PluginView):
         return '<p>{0}</p>'.format(images)
 
 
-class BroadcastReceive(PluginController):
+class BroadcastReceive(HairballPlugin):
     """Broadcast Receive
 
     Shows possible errors relating to broadcast and receive blocks
@@ -200,7 +200,7 @@ class BroadcastReceive(PluginController):
         messages = {}
         scripts = script_list[:]
         for script in scripts:
-            if PluginController.hat_type(script) == "when I receive %e":
+            if self.hat_type(script) == "when I receive %e":
                 message = script.blocks[0].args[0].lower()
                 if message not in messages.keys():
                     messages[message] = set()
@@ -284,7 +284,7 @@ class SoundSynchView(PluginView):
         return '<p>{0}</p>'.format(results)
 
 
-class SoundSynch(PluginController):
+class SoundSynch(HairballPlugin):
     """Sound Synch
 
     Checks for errors when dealing with sound/say bubble synchronization

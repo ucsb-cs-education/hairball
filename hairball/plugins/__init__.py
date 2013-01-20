@@ -14,7 +14,7 @@ HTML_TMPL = """<div class="header" id="{key}">{name}</div>
 <div class="hidden" id="{key}_body">{body}</div>"""
 
 
-class PluginController(object):
+class HairballPlugin(object):
 
     """The simple plugin name should go on the first comment line.
 
@@ -23,8 +23,6 @@ class PluginController(object):
 
     If you are seeing this message it means you need to define a docstring for
     your plugin.
-
-    TODO: Rename the class to HairballPlugin to be consistent with the paper.
 
     """
 
@@ -48,8 +46,8 @@ class PluginController(object):
                     "size": set([("change size by %n", "relative"),
                                  ("set size to %n%", "absolute")])}
 
-    @staticmethod
-    def block_iter(block_list, level=0):
+    @classmethod
+    def block_iter(cls, block_list, level=0):
         """A generator for blocks contained in a block list.
 
         TODO: Rename to iter_blocks to be consistent with the paper (DOH!)
@@ -57,11 +55,11 @@ class PluginController(object):
         """
         for block in block_list:
             if isinstance(block, kurt.scripts.Block):
-                for b in PluginController.get_block(block, level):
+                for b in cls.get_block(block, level):
                     yield b
 
-    @staticmethod
-    def get_block(block, level):
+    @classmethod
+    def get_block(cls, block, level):
         """A generator for a single block.
 
         If the block contains nested blocks, this generator will also yield
@@ -86,14 +84,14 @@ class PluginController(object):
             yield (block.type.text, level, block)
             for arg in block.args:
                 if hasattr(arg, '__iter__'):
-                    for b in PluginController.block_iter(arg, level + 1):
+                    for b in cls.block_iter(arg, level + 1):
                         yield b
                 elif isinstance(arg, kurt.scripts.Block):
-                    for b in PluginController.get_block(arg, level):
+                    for b in cls.get_block(arg, level):
                         yield b
 
-    @staticmethod
-    def get_broadcast(script):
+    @classmethod
+    def get_broadcast(cls, script):
         """Return a set of event-names that were broadcast.
 
         The set will contain "dynamic" if any of the broadcast blocks contain a
@@ -106,7 +104,7 @@ class PluginController(object):
         """
         messages = set()
         message = ""
-        gen = PluginController.block_iter(script.blocks)
+        gen = cls.block_iter(script.blocks)
         for name, level, block in gen:
             if "broadcast %e" in name:
                 if isinstance(block.args[0], kurt.scripts.Block):
@@ -132,8 +130,8 @@ class PluginController(object):
                     return False
         return True
 
-    @staticmethod
-    def mark_scripts(scratch):
+    @classmethod
+    def mark_scripts(cls, scratch):
         """Tag each script with attribute reachable.
 
         The reachable attribute will be set false, for any script that does not
@@ -151,9 +149,9 @@ class PluginController(object):
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         # Find scripts without hat blocks
         for script in scripts:
-            if PluginController.hat_type(script) == "No Hat":
+            if cls.hat_type(script) == "No Hat":
                 script.reachable = False
-            elif PluginController.hat_type(script) == "when I receive %e":
+            elif cls.hat_type(script) == "when I receive %e":
                 message = script.blocks[0].args[0].lower()
                 script.reachable = True
                 if message in pending.keys():
@@ -165,7 +163,7 @@ class PluginController(object):
                 processing.add(script)
         while len(processing) != 0:
             script = processing.pop()
-            for message in PluginController.get_broadcast(script):
+            for message in cls.get_broadcast(script):
                 if message in pending.keys():
                     for s in pending[message]:
                         processing.add(s)
@@ -193,8 +191,8 @@ class PluginController(object):
         else:
             return "No Hat"
 
-    @staticmethod
-    def pull_hat(hat_name, all_scripts):
+    @classmethod
+    def pull_hat(cls, hat_name, all_scripts):
         """Return a tuple of lists separating reachable scripts.
 
         The first list in the tuple are scripts that are reachable due to the
@@ -210,7 +208,7 @@ class PluginController(object):
         other = []
         scripts = all_scripts[:]
         for script in scripts:
-            if PluginController.hat_type(script) == hat_name:
+            if cls.hat_type(script) == hat_name:
                 hat_scripts.append(script)
             else:
                 other.append(script)

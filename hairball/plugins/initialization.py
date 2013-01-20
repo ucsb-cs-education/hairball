@@ -1,4 +1,4 @@
-from . import PluginController, PluginView, PluginWrapper
+from . import HairballPlugin, PluginView, PluginWrapper
 import copy
 
 
@@ -22,7 +22,7 @@ class InitializationView(PluginView):
         return '<p>{0}</p>'.format(attribute_changes)
 
 
-class Initialization(PluginController):
+class Initialization(HairballPlugin):
     """Change and initialization
 
     Checks if properties were changed and if so, if they were initialized.
@@ -155,7 +155,7 @@ class VariablesView(PluginView):
         return '<p>{0}</p>'.format(variables)
 
 
-class Variables(PluginController):
+class Variables(HairballPlugin):
     """Variable change and initialization
 
     Checks if variables were changed and if so, if they were initialized.

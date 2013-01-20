@@ -9,7 +9,7 @@ import kurt
 import os
 import sys
 from optparse import OptionParser
-from hairball.plugins import PluginController
+from hairball.plugins import HairballPlugin
 
 
 __version__ = '0.1a'
@@ -92,7 +92,7 @@ class Hairball(object):
                     plugin = getattr(module, class_name)()
 
                     # Verify plugin is of the correct class
-                    if not isinstance(plugin, PluginController):
+                    if not isinstance(plugin, HairballPlugin):
                         sys.stderr.write('Invalid type found for plugin `{0}` '
                                          '{1}\n'.format(plugin_name,
                                                         type(plugin)))

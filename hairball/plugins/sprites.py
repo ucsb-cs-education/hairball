@@ -1,4 +1,4 @@
-from . import PluginController, PluginView, PluginWrapper
+from . import HairballPlugin, PluginView, PluginWrapper
 
 
 class SpriteCountView(PluginView):
@@ -6,7 +6,7 @@ class SpriteCountView(PluginView):
         return '<p>{0}</p>'.format(data['count'])
 
 
-class SpriteCount(PluginController):
+class SpriteCount(HairballPlugin):
     """The Sprite Count
 
     Outputs the number of sprites in a scratch file.
@@ -27,7 +27,7 @@ class SpriteImagesView(PluginView):
         return images
 
 
-class SpriteImages(PluginController):
+class SpriteImages(HairballPlugin):
     """The Sprite Images
 
     Shows the first costume of each sprite in a scratch file.

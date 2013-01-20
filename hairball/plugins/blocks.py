@@ -1,6 +1,6 @@
 from collections import Counter
 import copy
-from . import PluginController, PluginView, PluginWrapper
+from . import HairballPlugin, PluginView, PluginWrapper
 
 
 class BlockTypesView(PluginView):
@@ -11,7 +11,7 @@ class BlockTypesView(PluginView):
         return '<p>{0}</p>'.format(blocks)
 
 
-class BlockTypes(PluginController):
+class BlockTypes(HairballPlugin):
     """Block Types
 
     Produces a count of each type of block contained in a scratch file.
@@ -27,7 +27,7 @@ class BlockTypes(PluginController):
         return self.view_data(types=blocks.most_common())
 
 
-class BlockTotals(PluginController):
+class BlockTotals(HairballPlugin):
     """Block Totals
 
     Produces a count of each type of block contained in all the scratch files.
@@ -80,7 +80,7 @@ class DeadCodeView(PluginView):
         return dead
 
 
-class DeadCode(PluginController):
+class DeadCode(HairballPlugin):
     """Dead Code
 
     Shows all of the dead code for each sprite in a scratch file.
@@ -132,7 +132,7 @@ class ScriptImagesView(PluginView):
         return script_images
 
 
-class ScriptImages(PluginController):
+class ScriptImages(HairballPlugin):
     """The Script Images
 
     Shows all of the scripts for each sprite in a scratch file.
