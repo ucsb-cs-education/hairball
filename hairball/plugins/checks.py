@@ -142,7 +142,7 @@ class Animation(HairballPlugin):
         animation = costume | rotate | motion | timing | loop | size
         a = Counter()
         for script in scripts:
-            gen = self.block_iter(script.blocks)
+            gen = self.iter_blocks(script.blocks)
             name = "start"
             level = None
             while name != "":
@@ -255,7 +255,7 @@ class BroadcastReceive(HairballPlugin):
         for message, scripts in receive.items():
             if len(scripts) > 1:
                 for script in scripts:
-                    for name, level, block in self.block_iter(script.blocks):
+                    for name, level, block in self.iter_blocks(script.blocks):
                         if block.type.flag == 't':
                             errors[4].add(message)
         # now find error 5
@@ -335,7 +335,7 @@ class SoundSynch(HairballPlugin):
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
             (last_name, last_level, last_block) = ("", 0, script.blocks[0])
-            gen = self.block_iter(script.blocks)
+            gen = self.iter_blocks(script.blocks)
             for name, level, block in gen:
                 if last_level == level:
                     if last_name == "say %s":

@@ -72,7 +72,7 @@ class Initialization(HairballPlugin):
         # first check the green flag scripts
         for script in gf:
             bandw = False
-            for name, level, block in self.block_iter(script.blocks):
+            for name, level, block in self.iter_blocks(script.blocks):
                 print name
                 if name == "broadcast %e and wait":
                     bandw = True
@@ -88,7 +88,7 @@ class Initialization(HairballPlugin):
                         (changed, initialized) = (True, False)
         # now check the others for any change
         for script in other:
-            for name, level, block in self.block_iter(script.blocks):
+            for name, level, block in self.iter_blocks(script.blocks):
                 temp = set([(name, "absolute"),
                             (name, "relative")])
                 if temp & property and not changed:
@@ -101,7 +101,7 @@ class Initialization(HairballPlugin):
         initialized = False
         for script in gf:
             bandw = False
-            for name, level, block in self.block_iter(script):
+            for name, level, block in self.iter_blocks(script):
                 if name == "broadcast %e and wait":
                     bandw = True
                 if name == "show" or name == "hide":
@@ -110,7 +110,7 @@ class Initialization(HairballPlugin):
                     elif not initialized:
                         (changed, initialized) = (True, False)
         for script in other:
-            for name, level, block in self.block_iter(script):
+            for name, level, block in self.iter_blocks(script):
                 if name == "show" or name == "hide":
                     if not changed:
                         (changed, initialized) = (True, False)
@@ -168,7 +168,7 @@ class Variables(HairballPlugin):
         for var in sprite.vars.keys():
             variables[var] = "unused"
         for script in greenflag:
-            for name, level, block in self.block_iter(script.blocks):
+            for name, level, block in self.iter_blocks(script.blocks):
                 if name == "broadcast %e and wait":
                     bandw = True
                 if name == "set %v to %s" and level == 0 and not bandw:
@@ -178,7 +178,7 @@ class Variables(HairballPlugin):
                     if (block.args[0], "unused") in variables.items():
                         variables[block.args[0]] = "changed"
         for script in other:
-            for name, level, block in self.block_iter(script.blocks):
+            for name, level, block in self.iter_blocks(script.blocks):
                 if name == "set %v to %s" or name == "change %v by %n":
                     if (block.args[0], "unused") in variables.items():
                         variables[block.args[0]] = "changed"
@@ -195,7 +195,7 @@ class Variables(HairballPlugin):
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         (gf, other) = self.pull_hat("when green flag clicked", scripts)
         for script in gf:
-            for name, level, block in self.block_iter(script.blocks):
+            for name, level, block in self.iter_blocks(script.blocks):
                 if name == "broadcast %e and wait":
                     bandw = True
                 if name == "set %v to %s" and level == 0 and not bandw:
@@ -206,7 +206,7 @@ class Variables(HairballPlugin):
                         variables[block.args[0]] = "changed"
             bandw = False
         for script in other:
-            for name, level, block in self.block_iter(script.blocks):
+            for name, level, block in self.iter_blocks(script.blocks):
                 if name == "set %v to %s" or name == "change %v by %n":
                     if (block.args[0], "unchanged") in variables.items():
                         variables[block.args[0]] = "changed"

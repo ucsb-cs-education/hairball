@@ -22,7 +22,7 @@ class BlockTypes(HairballPlugin):
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
-            for name, level, block in self.block_iter(script.blocks):
+            for name, level, block in self.iter_blocks(script.blocks):
                 blocks.update({name: 1})
         return self.view_data(types=blocks.most_common())
 
@@ -34,34 +34,20 @@ class BlockTotals(HairballPlugin):
     """
     def __init__(self):
         super(BlockTotals, self).__init__()
-        self.blocks = {}
+        self.blocks = Counter()
 
     def finalize(self):
-        file = open('blocktypes.txt', 'w')
-        file.write("activity, pair, ")
-        for key in self.BLOCKCOUNTER.keys():
-            file.write(key)
-            file.write(', ')
-        for ((group, project), blockcount) in self.blocks.items():
-            file.write('\n')
-            file.write(project)
-            file.write(', ')
-            file.write(group)
-            for block in self.BLOCKCOUNTER.keys():
-                file.write(', ')
-                file.write(str(blockcount[block]))
+        for name, count in sorted(self.blocks.items(), key=lambda x: x[1]):
+            print('{0:3} {1}'.format(count, name))
+        print('{0:3} total'.format(sum(self.blocks.values())))
 
     def analyze(self, scratch):
-        blocks = Counter()
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
         for script in scripts:
-            for name, level, block in self.block_iter(script.blocks):
-                blocks.update({name: 1})
-        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
-            self.blocks[(scratch.group,
-                         scratch.project)] = copy.deepcopy(blocks)
-        return self.view_data(types=blocks)
+            for name, level, block in self.iter_blocks(script.blocks):
+                self.blocks.update({name: 1})
+        return self.view_data(types=self.blocks)
 
 
 class DeadCodeView(PluginView):

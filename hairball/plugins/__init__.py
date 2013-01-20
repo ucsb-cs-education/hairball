@@ -46,49 +46,45 @@ class HairballPlugin(object):
                     "size": set([("change size by %n", "relative"),
                                  ("set size to %n%", "absolute")])}
 
-    @classmethod
-    def block_iter(cls, block_list, level=0):
+    @staticmethod
+    def iter_blocks(block_list):
         """A generator for blocks contained in a block list.
 
-        TODO: Rename to iter_blocks to be consistent with the paper (DOH!)
+        Yields tuples containing the block name, the "depth" that the block was
+        found at, and finally a handle to the block itself.
 
         """
-        for block in block_list:
-            if isinstance(block, kurt.scripts.Block):
-                for b in cls.get_block(block, level):
-                    yield b
-
-    @classmethod
-    def get_block(cls, block, level):
-        """A generator for a single block.
-
-        If the block contains nested blocks, this generator will also yield
-        those nested blocks.
-
-        TODO: fix or rename this function as it is misleading.
-
-        """
-        if block.name == 'EventHatMorph':
-            if block.args[0] == 'Scratch-StartClicked':
-                yield('when green flag clicked', 0, block)
+        # queue the block and the depth of the block
+        queue = [(block, 0) for block in block_list
+                 if isinstance(block, kurt.scripts.Block)]
+        while queue:
+            block, depth = queue.pop(0)
+            if block.command == 'EventHatMorph':
+                assert depth == 0
+                if block.args[0] == 'Scratch-StartClicked':
+                    yield 'when green flag clicked', depth, block
+                else:
+                    yield 'when I receive %e', depth, block
+            elif block.command == 'changeVariable':
+                if 'setVar' in str(block.args[1]):
+                    yield 'set %v by %n', depth, block
+                else:
+                    yield block.type.text, depth, block
+            elif block.command == '':
+                # Not sure if this ever actually happens
+                print('WARN: Empty command')
+                continue
             else:
-                yield("when I receive %e", 0, block)
-        elif block.name == 'changeVariable':
-            if 'setVar' in str(block.args[1]):
-                yield('set %v by %n', level, block)
-            else:
-                yield(block.type.text, level, block)
-        elif block.name == 'doIfElse':
-            yield('if %b else', level, block)
-        elif block.name != "":
-            yield (block.type.text, level, block)
-            for arg in block.args:
-                if hasattr(arg, '__iter__'):
-                    for b in cls.block_iter(arg, level + 1):
-                        yield b
-                elif isinstance(arg, kurt.scripts.Block):
-                    for b in cls.get_block(arg, level):
-                        yield b
+                if block.command == 'doIfElse':
+                    yield 'if %b else', depth, block
+                else:
+                    yield block.type.text, depth, block
+                for arg in block.args:
+                    if hasattr(arg, '__iter__'):
+                        queue[0:0] = [(x, depth + 1) for x in arg
+                                      if isinstance(x, kurt.scripts.Block)]
+                    elif isinstance(arg, kurt.scripts.Block):
+                        queue.append((arg, depth))
 
     @classmethod
     def get_broadcast(cls, script):
@@ -104,7 +100,7 @@ class HairballPlugin(object):
         """
         messages = set()
         message = ""
-        gen = cls.block_iter(script.blocks)
+        gen = cls.iter_blocks(script.blocks)
         for name, level, block in gen:
             if "broadcast %e" in name:
                 if isinstance(block.args[0], kurt.scripts.Block):
@@ -181,13 +177,13 @@ class HairballPlugin(object):
         TODO: Refactor or remove.
 
         """
-        if script.blocks[0].name == 'EventHatMorph':
+        if script.blocks[0].command == 'EventHatMorph':
             if script.blocks[0].args[0] == 'Scratch-StartClicked':
                 return "when green flag clicked"
             else:
                 return "when I receive %e"
-        elif 'EventHatMorph' in script.blocks[0].name:
-            return script.blocks[0].name
+        elif 'EventHatMorph' in script.blocks[0].command:
+            return script.blocks[0].command
         else:
             return "No Hat"
 
