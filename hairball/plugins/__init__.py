@@ -1,18 +1,7 @@
 """This module provides the code necessary to write a Hairball plugin."""
 
 import kurt
-import os
 from collections import Counter
-from functools import wraps
-from hashlib import sha1
-from random import random
-
-NOT_IMPL_MSG = '{0!r} needs to implement function {1!r}'
-NO_DOCSTRING = '{0!r} needs a class docstring (comment).'
-
-HTML_TMPL = """<div class="header" id="{key}">{name}</div>
-<div class="description">{description}</div>
-<div class="hidden" id="{key}_body">{body}</div>"""
 
 
 class HairballPlugin(object):
@@ -204,28 +193,6 @@ class HairballPlugin(object):
                 other.append(script)
         return hat_scripts, other
 
-    @staticmethod
-    def save_png(image, image_name, sprite_name=''):
-        """Save the image to disc and returns the relative path to the file.
-
-        Use the companion function `get_image_html` in the view to get an html
-        view for the image.
-
-        """
-        path = '{0}{1}.png'.format(sprite_name, image_name).replace('/', '_')
-        image.save_png(path)
-        os.chmod(path, 0444)  # Read-only archive file
-        # Must be world readable for NGINX to serve the file.
-        return path
-
-    @staticmethod
-    def save_png_dir(image, image_absolute_path_name):
-        """Save the image to disc and return the absolute path to the file."""
-
-        image.save_png(image_absolute_path_name)
-        os.chmod(image_absolute_path_name, 0400)  # Read-only archive file
-        return image_absolute_path_name
-
     @property
     def description(self):
         """Attribute that returns the plugin description from its docstring."""
@@ -250,98 +217,7 @@ class HairballPlugin(object):
         """
         pass
 
-    def _process(self, scratch, thumbnail_path=None, **kwargs):
-        # We need to save the thumbnail somewhere; might as well do it here
-        if not hasattr(scratch, 'thumbnail_saved'):
-            self.save_png(scratch.info['thumbnail'], 'thumbnail')
-            # also save a copy of the thumbnail in the backup directory
-            if thumbnail_path:
-                self.save_png_dir(scratch.info['thumbnail'], thumbnail_path)
-            scratch.thumbnail_saved = True
+    def _process(self, scratch, **kwargs):
         if not hasattr(scratch, 'plugin_prepared'):
             self.mark_scripts(scratch)
         return self.analyze(scratch, **kwargs)
-
-    def view_data(self, **kwargs):
-        """Return the dictionary necessary for the PluginView classes."""
-        kwargs['_name'] = self.name
-        kwargs['_description'] = self.description
-        return kwargs
-
-
-class PluginView(object):
-
-    """Base class for formatters of plugin results.
-
-    TODO: We should probably do away with this class completely or make its
-    use more transparent.
-
-    """
-
-    IMG_TMPL = '<img class="scratch-image" src="{0}" />\n<br />\n'
-    SUBHEADING = '<div class="subheading">{0}</div>'
-
-    @staticmethod
-    def get_image_html(relative_path):
-        """Return an html image tag."""
-        return PluginView.IMG_TMPL.format(relative_path)
-
-    @staticmethod
-    def to_scratch_blocks(heading, scripts):
-        """Return the scripts in an html scratch blocks format."""
-        data = []
-        for script in scripts:
-            data.append('<div class="float scratchblocks">{0}</div>'
-                        .format(script.to_block_plugin()))
-        heading = PluginView.SUBHEADING.format(heading)
-        return ('<div>\n{0}\n<div>{1}</div>\n<div class="clear"></div>\n'
-                '</div>\n').format(heading, ''.join(data))
-
-    def __init__(self, function):
-        wraps(function)(self)
-        self.function = function
-
-    def __call__(self, *args, **kwargs):
-        data = self.function(*args, **kwargs)
-        body = self.view(data)
-        key = sha1(str(random())).hexdigest()
-        return HTML_TMPL.format(key=key, name=data['_name'], body=body,
-                                description=data['_description'])
-
-    def __get__(self, instance, instance_type):
-        return self.__class__(self.function.__get__(instance, instance_type))
-
-
-class PluginWrapper(object):
-
-    """Wrap the plugin such that the appropriate view class can be called.
-
-    TODO: Possibly remove for the same reason as removing the PluginView class
-
-    """
-
-    def __init__(self, html=None, txt=None):
-        self.html = html
-        self.txt = txt
-
-    def __call__(self, function):
-        html_decorator = txt_decorator = None
-        if self.html:
-            html_decorator = self.html(function)
-        if self.txt:
-            txt_decorator = self.txt(function)
-
-        def wrapped(*args, **kwargs):
-            if '_decorator' not in kwargs:
-                return function(*args, **kwargs)
-            selection = kwargs['_decorator']
-            del kwargs['_decorator']
-
-            if html_decorator and selection == 'html':
-                return html_decorator(*args, **kwargs)
-            elif txt_decorator and selection == 'txt':
-                return txt_decorator(*args, **kwargs)
-            else:
-                raise Exception('Unknown decorator type {0!r}'
-                                .format(selection))
-        return wrapped

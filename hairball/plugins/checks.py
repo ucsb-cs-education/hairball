@@ -1,18 +1,6 @@
 import copy
 from collections import Counter
-from . import HairballPlugin, PluginView, PluginWrapper
-
-
-class AnimationView(PluginView):
-    def view(self, data):
-        images = ""
-        sprite_str = ""
-        for (sprite, results) in data["animation"].items():
-            for (change, timing) in results:
-                sprite_str += "Change: {0}, Timing: {1}; ".format(
-                    change, timing)
-            images += "Sprite {0}: {1}".format(sprite, sprite_str) + '<br />'
-        return '<p>{0}</p>'.format(images)
+from . import HairballPlugin
 
 
 class Animation(HairballPlugin):
@@ -153,19 +141,7 @@ class Animation(HairballPlugin):
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
             self.animation[(scratch.group,
                             scratch.project)] = copy.deepcopy(a)
-        return self.view_data(animation=a)
-
-
-class BroadcastReceiveView(PluginView):
-    def view(self, data):
-        images = ""
-        message_str = ""
-        for (error, messages) in data["broadcast"].items():
-            if len(messages) != 0:
-                message_str = ', '.join(messages)
-                images += "error {0}: {1}".format(
-                    error, message_str) + '<br />'
-        return '<p>{0}</p>'.format(images)
+        return {'animation': a}
 
 
 class BroadcastReceive(HairballPlugin):
@@ -271,17 +247,7 @@ class BroadcastReceive(HairballPlugin):
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
             self.broadcast[(scratch.group,
                             scratch.project)] = errors
-        return self.view_data(broadcast=errors)
-
-
-class SoundSynchView(PluginView):
-    def view(self, data):
-        results = ""
-        if len(data['sound']) == 0:
-            results = "No sound"
-        else:
-            results = "errors: {0}".format(", ".join(data['sound']))
-        return '<p>{0}</p>'.format(results)
+        return {'broadcast': errors}
 
 
 class SoundSynch(HairballPlugin):
@@ -328,7 +294,6 @@ class SoundSynch(HairballPlugin):
             errors.update({'1': 1})
             return errors
 
-    @PluginWrapper(html=SoundSynchView)
     def analyze(self, scratch):
         errors = Counter()
         scripts = scratch.stage.scripts[:]
@@ -373,4 +338,4 @@ class SoundSynch(HairballPlugin):
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
             self.sound[(scratch.group,
                         scratch.project)] = errors
-        return self.view_data(sound=errors)
+        return {'sound': errors}

@@ -1,25 +1,5 @@
-from . import HairballPlugin, PluginView, PluginWrapper
+from . import HairballPlugin
 import copy
-
-
-class InitializationView(PluginView):
-    def add(self, property, (changed, initialized)):
-        attr_changes = "{0} change: {1} <br />".format(property, changed)
-        if changed:
-            attr_changes += '<span class = "indent1"> Initialized: '
-            attr_changes += '{0} </span>'.format(initialized)
-            attr_changes += '<br />'
-        return attr_changes
-
-    def view(self, data):
-        attribute_changes = ""
-        for (sprite, properties) in data['initialized'].items():
-            attribute_changes += sprite + "<br />"
-            for property in properties:
-                attribute_changes += self.add(
-                    property, data['initialized'][sprite][property])
-            attribute_changes += "<br />"
-        return '<p>{0}</p>'.format(attribute_changes)
 
 
 class Initialization(HairballPlugin):
@@ -127,7 +107,6 @@ class Initialization(HairballPlugin):
         sprite_attr["visibility"] = self.visibility_change(sprite, gf, other)
         return sprite_attr
 
-    @PluginWrapper(html=InitializationView)
     def analyze(self, scratch):
         attribute_changes = dict()
         for sprite in scratch.stage.sprites:
@@ -141,18 +120,7 @@ class Initialization(HairballPlugin):
             (group, project) = (scratch.group, scratch.project)
             self.initialization[(group, project)] = copy.deepcopy(
                 attribute_changes)
-        return self.view_data(initialized=attribute_changes)
-
-
-class VariablesView(PluginView):
-    def view(self, data):
-        variables = ""
-        for name, vars in data['variables'].items():
-            variables += '{0} <br />'.format(name)
-            for variable, change in vars.items():
-                variables += '{0}: {1} <br />'.format(variable, change)
-            variables += '<br />'
-        return '<p>{0}</p>'.format(variables)
+        return {'initialized': attribute_changes}
 
 
 class Variables(HairballPlugin):
@@ -212,10 +180,9 @@ class Variables(HairballPlugin):
                         variables[block.args[0]] = "changed"
         return variables
 
-    @PluginWrapper(html=VariablesView)
     def analyze(self, scratch):
         variables = dict()
         for sprite in scratch.stage.sprites:
             variables[sprite.name] = self.local_vars(sprite)
         variables["global"] = self.global_vars(scratch)
-        return self.view_data(variables=variables)
+        return {'variables': variables}
