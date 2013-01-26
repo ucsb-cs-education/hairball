@@ -76,6 +76,19 @@ class HairballPlugin(object):
                     elif isinstance(arg, kurt.scripts.Block):
                         queue.append((arg, depth))
 
+    @staticmethod
+    def iter_scripts(scratch):
+        """A generator for all scripts contained in a scratch file.
+
+        yields stage scripts first, then scripts for each sprite
+
+        """
+        for script in scratch.stage.scripts:
+            yield script
+        for sprite in scratch.stage.sprites:
+            for script in sprite.scripts:
+                yield script
+
     @classmethod
     def get_broadcast_events(cls, script):
         """Return a Counter of event-names that were broadcast.
@@ -93,22 +106,6 @@ class HairballPlugin(object):
                     events[block.args[0].lower()] += 1
         return events
 
-    @staticmethod
-    def check_empty(word):
-        """Return True if there is at least one character and no spaces.
-
-        TODO: Check for the purpose. This can probably be replaced by `isalnum`
-            or at the very least simplified and moved into a helper class.
-
-        """
-        if len(word) == 0:
-            return True
-        else:
-            for letter in word:
-                if letter != " ":
-                    return False
-        return True
-
     @classmethod
     def mark_scripts(cls, scratch):
         """Tag each script with attribute reachable.
@@ -124,8 +121,7 @@ class HairballPlugin(object):
         processing = set()
         pending = {}
         scratch.static = True
-        scripts = scratch.stage.scripts[:]
-        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
+        scripts = list(cls.iter_scripts(scratch))
         # Find scripts without hat blocks
         for script in scripts:
             if cls.hat_type(script) == "No Hat":

@@ -250,8 +250,8 @@ class BroadcastReceive(HairballPlugin):
         return {'broadcast': errors}
 
 
-class SoundSynch(HairballPlugin):
-    """Sound Synch
+class SaySoundSync(HairballPlugin):
+    """Say and sound synchronization
 
     Checks for errors when dealing with sound/say bubble synchronization
     The order should be:
@@ -259,83 +259,81 @@ class SoundSynch(HairballPlugin):
     Play sound "___" until done,
     Say ""
     """
-    def __init__(self):
-        super(SoundSynch, self).__init__()
-        self.sound = {}
 
-    def finalize(self):
-        file = open('soundsynch.txt', 'w')
-        file.write("activity, pair: 3 2 1 0")
-        for ((group, project), results) in self.sound.items():
-            file.write('\n{0}, {1}: '.format(project, group))
-            if len(results) != 0:
-                file.write("{0} {1} {2} {3}"
-                           .format(results['3'], results['2'],
-                                   results['1'], results['0']))
+    CORRECT = -1
+    ERROR = 0
+    INCORRECT = 1
+    HACKISH = 2
 
-    def check(self, gen):
-        errors = Counter()
-        (name, level, block) = next(gen, ("", 0, ""))
-        if name == "say %s" or name == "think %s":
-            # counts as blank if it's a string made up of spaces
-            if self.check_empty(block.args[0]):
-                errors.update({'3': 1})
-                return errors
-            else:
-                (name, level, block) = next(gen, ("", 0, ""))
-                if name == "play sound %S until done":
-                    errors.update({'3': 1})
-                    errors += self.check(gen)
-                    return errors
-                else:
-                    errors.update({'1': 1})
-                    return errors
-        else:
-            errors.update({'1': 1})
-            return errors
+    SAY_THINK = ('say %s', 'think %s')
+    SAY_THINK_DURATION = ('say %s for %n secs', 'think %s for %n secs')
+    ALL_SAY_THINK = SAY_THINK + SAY_THINK_DURATION
+
+    @staticmethod
+    def is_blank(word):
+        """Return True if the string is empty, or only whitespace."""
+        return not word or word.isspace()
 
     def analyze(self, scratch):
+        """Categorize instances of attempted say and sound synchronization."""
         errors = Counter()
-        scripts = scratch.stage.scripts[:]
-        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        for script in scripts:
-            (last_name, last_level, last_block) = ("", 0, script.blocks[0])
+        for script in self.iter_scripts(scratch):
+            prev_name, prev_depth, prev_block = '', 0, script.blocks[0]
             gen = self.iter_blocks(script.blocks)
-            for name, level, block in gen:
-                if last_level == level:
-                    if last_name == "say %s":
-                        if not self.check_empty(last_block.args[0]):
-                            if name == "play sound %S until done":
+            for name, depth, block in gen:
+                if prev_depth == depth:
+                    if prev_name in self.SAY_THINK:
+                        if name == 'play sound %S until done':
+                            if not self.is_blank(prev_block.args[0]):
                                 errors += self.check(gen)
-                    elif last_name == "think %s":
-                        if not self.check_empty(last_block.args[0]):
-                            if name == "play sound %S until done":
-                                errors += self.check(gen)
-                    elif last_name == "play sound %S":
-                        if name == "say %s for %n secs":
-                            if not self.check_empty(block.args[0]):
-                                errors.update({'2': 1})
+                        # TODO: What about play sound?
+                    elif prev_name in self.SAY_THINK_DURATION and \
+                            'play sound %S' in name:
+                        errors['1'] += 1
+                    elif prev_name == 'play sound %S':
+                        if name in self.SAY_THINK:
+                            errors[self.INCORRECT] += 1
+                        elif name in self.SAY_THINK_DURATION:
+                            if self.is_blank(block.args[0]):
+                                errors[self.ERROR] += 1
                             else:
-                                errors.update({'1': 1})
-                        elif name == "think %s for %n secs":
-                            if not self.check_empty(block.args[0]):
-                                errors.update({'2': 1})
-                            else:
-                                errors.update({'1': 1})
-                        elif name == "say %s":
-                            errors.update({'1': 1})
-                    elif "play sound %S" in last_name and "say %s" in name:
-                        if not self.check_empty(block.args[0]):
-                            errors.update({'1': 1})
-                    elif "play sound %S" in name and "say %s" in last_name:
-                        errors.update({'1': 1})
-                    elif "play sound %S" in last_name and "think %s" in name:
-                        if not self.check_empty(block.args[0]):
-                            errors.update({'1': 1})
-                    elif "play sound %S" in name and "think %s" in last_name:
-                        errors.update({'1': 1})
-                (last_name, last_level, last_block) = (name, level, block)
-        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
-            self.sound[(scratch.group,
-                        scratch.project)] = errors
+                                errors[self.HACKISH] += 1
+                    elif prev_name == 'play sound %S until done' and \
+                            name in self.ALL_SAY_THINK:
+                        if not self.is_blank(block.args[0]):
+                            errors[self.INCORRECT] += 1
+                        # TODO: Should there be an else clause here?
+                prev_name, prev_depth, prev_block = name, depth, block
         return {'sound': errors}
+
+    def check(self, gen):
+        """Check that the last part of the chain matches.
+
+        TODO: Fix to handle the following situation that appears to not work
+
+        say 'message 1'
+        play sound until done
+        say 'message 2'
+        say 'message 3'
+        play sound until done
+        say ''
+
+        """
+        retval = Counter()
+        name, _, block = next(gen, ('', 0, ''))
+        if name in self.SAY_THINK:
+            if self.is_blank(block.args[0]):
+                retval[self.CORRECT] += 1
+            else:
+                name, _, block = next(gen, ('', 0, ''))
+                if name == 'play sound %S until done':
+                    # Increment the correct count because we have at least
+                    # one successful instance
+                    retval[self.CORRECT] += 1
+                    # This block represents the beginning of a second
+                    retval += self.check(gen)
+                else:
+                    retval[self.INCORRECT] += 1
+        else:
+            retval[self.INCORRECT] += 1
+        return retval
