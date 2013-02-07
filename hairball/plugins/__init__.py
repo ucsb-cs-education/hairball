@@ -16,6 +16,11 @@ class HairballPlugin(object):
 
     """
 
+    HAT_GREEN_FLAG = 0
+    HAT_WHEN_I_RECEIVE = 1
+    HAT_OTHER = 2
+    NOT_HAT = 3
+
     BLOCKMAPPING = {"position": set([("move %n steps", "relative"),
                                      ("go to x:%n y:%n", "absolute"),
                                      ("go to %m", "relative"),
@@ -89,6 +94,20 @@ class HairballPlugin(object):
             for script in sprite.scripts:
                 yield script
 
+    @staticmethod
+    def script_start_type(script):
+        """Return the type of block the script begins with."""
+        if script.blocks[0].command == 'EventHatMorph':
+            if script.blocks[0].args[0] == 'Scratch-StartClicked':
+                return HairballPlugin.HAT_GREEN_FLAG
+            else:
+                return HairballPlugin.HAT_WHEN_I_RECEIVE
+        elif 'EventHatMorph' in script.blocks[0].command:
+            print script.blocks[0].command
+            return HairballPlugin.HAT_OTHER
+        else:
+            return HairballPlugin.NOT_HAT
+
     @classmethod
     def get_broadcast_events(cls, script):
         """Return a Counter of event-names that were broadcast.
@@ -107,7 +126,7 @@ class HairballPlugin(object):
         return events
 
     @classmethod
-    def mark_scripts(cls, scratch):
+    def tag_reachable_scripts(cls, scratch):
         """Tag each script with attribute reachable.
 
         The reachable attribute will be set false, for any script that does not
@@ -115,59 +134,32 @@ class HairballPlugin(object):
         "when I receive" block whose event-name doesn't appear in a
         corresponding broadcast block is marked as unreachable.
 
-        TODO: Rename for clarity.
-
         """
-        processing = set()
-        pending = {}
-        scratch.static = True
-        scripts = list(cls.iter_scripts(scratch))
-        # Find scripts without hat blocks
-        for script in scripts:
-            if cls.hat_type(script) == "No Hat":
+        reachable = set()
+        untriggered_events = {}
+        # Initial pass to find reachable and potentially reachable scripts
+        for script in list(cls.iter_scripts(scratch)):
+            starting_type = cls.script_start_type(script)
+            if starting_type == cls.NOT_HAT:
                 script.reachable = False
-            elif cls.hat_type(script) == "when I receive %e":
+            elif starting_type == cls.HAT_WHEN_I_RECEIVE:
+                script.reachable = False  # Value will be updated if reachable
                 message = script.blocks[0].args[0].lower()
-                script.reachable = True
-                if message in pending.keys():
-                    pending[message].add(script)
-                else:
-                    pending[message] = {script}
+                untriggered_events.setdefault(message, set()).add(script)
             else:
                 script.reachable = True
-                processing.add(script)
-        while len(processing) != 0:
-            script = processing.pop()
-            for event in cls.get_broadcast_events(script):
-                if event in pending.keys():
-                    for s in pending[event]:
-                        processing.add(s)
-                    del pending[event]
-        while len(pending) != 0:
-            (message, scripts) = pending.popitem()
-            for script in scripts:
-                script.reachable = False
-        scratch.plugin_prepared = True
-
-    @staticmethod
-    def hat_type(script):
-        """Helper that returns the hat type of the block.
-
-        TODO: Refactor or remove.
-
-        """
-        if script.blocks[0].command == 'EventHatMorph':
-            if script.blocks[0].args[0] == 'Scratch-StartClicked':
-                return "when green flag clicked"
-            else:
-                return "when I receive %e"
-        elif 'EventHatMorph' in script.blocks[0].command:
-            return script.blocks[0].command
-        else:
-            return "No Hat"
+                reachable.add(script)
+        # Expand reachable states based on broadcast events
+        while reachable:
+            for event in cls.get_broadcast_events(reachable.pop()):
+                if event in untriggered_events:
+                    for script in untriggered_events.pop(event):
+                        script.reachable = True
+                        reachable.add(script)
+        scratch.hairball_prepared = True
 
     @classmethod
-    def pull_hat(cls, hat_name, all_scripts):
+    def pull_hat(cls, start_type, all_scripts):
         """Return a tuple of lists separating reachable scripts.
 
         The first list in the tuple are scripts that are reachable due to the
@@ -183,7 +175,7 @@ class HairballPlugin(object):
         other = []
         scripts = all_scripts[:]
         for script in scripts:
-            if cls.hat_type(script) == hat_name:
+            if cls.script_start_type(script) == start_type:
                 hat_scripts.append(script)
             else:
                 other.append(script)
@@ -204,6 +196,20 @@ class HairballPlugin(object):
         """Attribute that returns the plugin name from its docstring."""
         return self.__doc__.split('\n')[0]
 
+    def _process(self, scratch, **kwargs):
+        """Internal hook to the analyze function."""
+        if not hasattr(scratch, 'hairball_prepared'):
+            self.tag_reachable_scripts(scratch)
+        return self.analyze(scratch, **kwargs)
+
+    def analyze(self, scratch, **kwargs):
+        """Perform the analysis and return the results.
+
+        This function must be overridden by a subclass.
+
+        """
+        raise NotImplementedError('Subclass must implement this method')
+
     def finalize(self):
         """Overwrite this function to be notified when analysis is complete.
 
@@ -212,8 +218,3 @@ class HairballPlugin(object):
 
         """
         pass
-
-    def _process(self, scratch, **kwargs):
-        if not hasattr(scratch, 'plugin_prepared'):
-            self.mark_scripts(scratch)
-        return self.analyze(scratch, **kwargs)

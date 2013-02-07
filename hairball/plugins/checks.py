@@ -176,7 +176,7 @@ class BroadcastReceive(HairballPlugin):
         messages = {}
         scripts = script_list[:]
         for script in scripts:
-            if self.hat_type(script) == "when I receive %e":
+            if self.script_start_type(script) == self.HAT_WHEN_I_RECEIVE:
                 message = script.blocks[0].args[0].lower()
                 if message not in messages.keys():
                     messages[message] = set()

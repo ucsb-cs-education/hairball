@@ -99,7 +99,7 @@ class Initialization(HairballPlugin):
     def sprite_changes(self, sprite):
         sprite_attr = dict()
         general = ["position", "orientation", "costume", "size"]
-        (gf, other) = self.pull_hat("when green flag clicked", sprite.scripts)
+        (gf, other) = self.pull_hat(self.HAT_GREEN_FLAG, sprite.scripts)
         print sprite.name, gf
         for property in general:
             sprite_attr[property] = self.gen_change(
@@ -112,8 +112,7 @@ class Initialization(HairballPlugin):
         for sprite in scratch.stage.sprites:
             attribute_changes[sprite.name] = self.sprite_changes(sprite)
         attribute_changes["stage"] = {}
-        (gf, other) = self.pull_hat("when green flag clicked",
-                                    scratch.stage.scripts)
+        gf, other = self.pull_hat(self.HAT_GREEN_FLAG, scratch.stage.scripts)
         attribute_changes["stage"]["background"] = self.gen_change(
             scratch.stage, gf, other, self.BLOCKMAPPING["costume"])
         if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
@@ -129,8 +128,8 @@ class Variables(HairballPlugin):
     Checks if variables were changed and if so, if they were initialized.
     """
     def local_vars(self, sprite):
-        (greenflag, other) = self.pull_hat(
-            "when green flag clicked", list(sprite.scripts))
+        greenflag, other = self.pull_hat(self.HAT_GREEN_FLAG,
+                                         list(sprite.scripts))
         variables = dict()
         bandw = False
         for var in sprite.vars.keys():
@@ -161,7 +160,7 @@ class Variables(HairballPlugin):
         other = []
         scripts = scratch.stage.scripts[:]
         [scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        (gf, other) = self.pull_hat("when green flag clicked", scripts)
+        gf, other = self.pull_hat(self.HAT_GREEN_FLAG, scripts)
         for script in gf:
             for name, level, block in self.iter_blocks(script.blocks):
                 if name == "broadcast %e and wait":
