@@ -18,34 +18,36 @@ class HairballPlugin(object):
 
     HAT_GREEN_FLAG = 0
     HAT_WHEN_I_RECEIVE = 1
-    HAT_OTHER = 2
+    HAT_OTHER = 2  # mouse or key press
     NOT_HAT = 3
 
-    BLOCKMAPPING = {"position": set([("move %n steps", "relative"),
-                                     ("go to x:%n y:%n", "absolute"),
-                                     ("go to %m", "relative"),
-                                     ("glide %n secs to x:%n y:%n",
-                                      "relative"),
-                                     ("change x by %n", "relative"),
-                                     ("x position", "absolute"),
-                                     ("change y by %n", "relative"),
-                                     ("y position", "absolute")]),
-                    "orientation": set([("turn cw %n degrees", "relative"),
-                                        ("turn ccw %n degrees", "relative"),
-                                        ("point in direction %d", "absolute"),
-                                        ("point towards %m", "relative")]),
-                    "costume": set([("switch to background %l", "absolute"),
-                                    ("next background", "relative"),
-                                    ("switch to costume %l", "absolute"),
-                                    ("next costume", "relative")]),
-                    "size": set([("change size by %n", "relative"),
-                                 ("set size to %n%", "absolute")])}
+    BLOCKMAPPING = {'costume': set([('switch to background %l', 'absolute'),
+                                    ('next background', 'relative'),
+                                    ('switch to costume %l', 'absolute'),
+                                    ('next costume', 'relative')]),
+                    'orientation': set([('turn cw %n degrees', 'relative'),
+                                        ('turn ccw %n degrees', 'relative'),
+                                        ('point in direction %d', 'absolute'),
+                                        ('point towards %m', 'relative')]),
+                    'position': set([('move %n steps', 'relative'),
+                                     ('go to x:%n y:%n', 'absolute'),
+                                     ('go to %m', 'relative'),
+                                     ('glide %n secs to x:%n y:%n',
+                                      'relative'),
+                                     ('change x by %n', 'relative'),
+                                     ('x position', 'absolute'),
+                                     ('change y by %n', 'relative'),
+                                     ('y position', 'absolute')]),
+                    'size': set([('change size by %n', 'relative'),
+                                 ('set size to %n%', 'absolute')]),
+                    'visibility': set([('hide', 'absolute'),
+                                       ('show', 'absolute')])}
 
     @staticmethod
     def iter_blocks(block_list):
         """A generator for blocks contained in a block list.
 
-        Yields tuples containing the block name, the "depth" that the block was
+        Yields tuples containing the block name, the depth that the block was
         found at, and finally a handle to the block itself.
 
         """
@@ -103,7 +105,6 @@ class HairballPlugin(object):
             else:
                 return HairballPlugin.HAT_WHEN_I_RECEIVE
         elif 'EventHatMorph' in script.blocks[0].command:
-            print script.blocks[0].command
             return HairballPlugin.HAT_OTHER
         else:
             return HairballPlugin.NOT_HAT
@@ -129,9 +130,9 @@ class HairballPlugin(object):
     def tag_reachable_scripts(cls, scratch):
         """Tag each script with attribute reachable.
 
-        The reachable attribute will be set false, for any script that does not
+        The reachable attribute will be set false for any script that does not
         begin with a hat block. Additionally, any script that begins with a
-        "when I receive" block whose event-name doesn't appear in a
+        `when I receive` block whose event-name doesn't appear in a
         corresponding broadcast block is marked as unreachable.
 
         """
@@ -158,29 +159,6 @@ class HairballPlugin(object):
                         reachable.add(script)
         scratch.hairball_prepared = True
 
-    @classmethod
-    def pull_hat(cls, start_type, all_scripts):
-        """Return a tuple of lists separating reachable scripts.
-
-        The first list in the tuple are scripts that are reachable due to the
-        fact that they begin with a hat block (note: some of these may not
-        actually be reachable due to the lack of a corresponding broadcast
-        event). The second list in the tuple contains all other scripts, i.e.,
-        those that do not begin with hat blocks.
-
-        TODO: rename or remove
-
-        """
-        hat_scripts = []
-        other = []
-        scripts = all_scripts[:]
-        for script in scripts:
-            if cls.script_start_type(script) == start_type:
-                hat_scripts.append(script)
-            else:
-                other.append(script)
-        return hat_scripts, other
-
     @property
     def description(self):
         """Attribute that returns the plugin description from its docstring."""
@@ -198,7 +176,7 @@ class HairballPlugin(object):
 
     def _process(self, scratch, **kwargs):
         """Internal hook to the analyze function."""
-        if not hasattr(scratch, 'hairball_prepared'):
+        if not scratch.hairball_prepared:
             self.tag_reachable_scripts(scratch)
         return self.analyze(scratch, **kwargs)
 

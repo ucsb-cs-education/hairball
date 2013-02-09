@@ -1,125 +1,118 @@
+"""This module provides plugins for checking initialization."""
+
 from . import HairballPlugin
-import copy
+
+
+def partition_scripts(scripts, start_type):
+    """Return two lists of scripts out of the original `scripts` list.
+
+    Scripts that begin with a `start_type` block are returned first. All other
+    scripts are returned second.
+
+    """
+    match, other = [], []
+    for script in scripts:
+        if HairballPlugin.script_start_type(script) == start_type:
+            match.append(script)
+        else:
+            other.append(script)
+    return match, other
 
 
 class Initialization(HairballPlugin):
-    """Change and initialization
 
-    Checks if properties were changed and if so, if they were initialized.
-    """
-    def __init__(self):
-        super(Initialization, self).__init__()
-        self.initialization = {}
+    """Plugin that checks if modified attributes are properly initialized."""
 
-    def finalize(self):
-        file = open('initialization.txt', 'w')
-        file.write("activity, pair: background costume")
-        file.write(" orientation position size visibility")
-        for ((group, project), sprites) in self.initialization.items():
-            file.write('\n{0}, {1}: '.format(project, group))
-            properties = self.sort_by_prop(sprites)
-            file.write("{0} {1} {2} {3} {4} {5}"
-                       .format(properties["background"], properties["costume"],
-                               properties["orientation"],
-                               properties["position"], properties["size"],
-                               properties["visibility"]))
+    ATTRIBUTES = ('background', 'costume', 'orientation', 'position', 'size',
+                  'visibility')
 
-    def sort_by_prop(self, sprites):
-        init = {}
-        init["costume"] = 1
-        init["visibility"] = 1
-        init["position"] = 1
-        init["orientation"] = 1
-        init["size"] = 1
-        (changed, initialized) = sprites["stage"]["background"]
-        if not changed:
-            init["background"] = 1
-        elif changed and initialized:
-            init["background"] = 1
-        else:
-            init["background"] = 0
-        del sprites["stage"]
-        for (sprite, properties) in sprites.items():
-            for (property, (changed, initialized)) in properties.items():
-                if changed and not initialized:
-                    init[property] = 0
-        return init
+    STATE_NOT_MODIFIED = 0
+    STATE_MODIFIED = 1
+    STATE_INITIALIZED = 2
 
-    def gen_change(self, sprite, gf, other, property):
-        changed = False
-        initialized = False
-        bandw = False
-        # first check the green flag scripts
-        for script in gf:
-            bandw = False
-            for name, level, block in self.iter_blocks(script.blocks):
-                print name
-                if name == "broadcast %e and wait":
-                    bandw = True
-                temp = set([(name, "absolute"),
-                            (name, "relative")])
-                if temp & property:
-                    if (name, "absolute") in property:
-                        if not bandw and level == 0:
-                            (changed, initialized) = (True, True)
-                        elif not initialized:
-                            (changed, initialized) = (True, False)
-                    elif not initialized:
-                        (changed, initialized) = (True, False)
-        # now check the others for any change
-        for script in other:
-            for name, level, block in self.iter_blocks(script.blocks):
-                temp = set([(name, "absolute"),
-                            (name, "relative")])
-                if temp & property and not changed:
-                    return (True, False)
-        return (changed, initialized)
+    @classmethod
+    def attribute_result(cls, sprites):
+        """Return mapping of attributes to if they were initialized or not."""
+        retval = dict((x, True) for x in cls.ATTRIBUTES)
+        for properties in sprites.values():
+            for attribute, state in properties.items():
+                retval[attribute] &= state != cls.STATE_MODIFIED
+        return retval
 
-    def visibility_change(self, sprite, gf, other):
-        bandw = False
-        changed = False
-        initialized = False
-        for script in gf:
-            bandw = False
-            for name, level, block in self.iter_blocks(script):
-                if name == "broadcast %e and wait":
-                    bandw = True
-                if name == "show" or name == "hide":
-                    if level == 0 and not bandw:
-                        (changed, initialized) = (True, True)
-                    elif not initialized:
-                        (changed, initialized) = (True, False)
-        for script in other:
-            for name, level, block in self.iter_blocks(script):
-                if name == "show" or name == "hide":
-                    if not changed:
-                        (changed, initialized) = (True, False)
-        return (changed, initialized)
+    @classmethod
+    def attribute_state(cls, partition, attribute):
+        """Return the state of the partition for the given attribute.
 
-    def sprite_changes(self, sprite):
-        sprite_attr = dict()
-        general = ["position", "orientation", "costume", "size"]
-        (gf, other) = self.pull_hat(self.HAT_GREEN_FLAG, sprite.scripts)
-        print sprite.name, gf
-        for property in general:
-            sprite_attr[property] = self.gen_change(
-                sprite, gf, other, self.BLOCKMAPPING[property])
-        sprite_attr["visibility"] = self.visibility_change(sprite, gf, other)
-        return sprite_attr
+        If there is more than one `when green flag clicked` script and they
+        both modify the attribute, then the attribute is considered to not be
+        initialized.
+
+        """
+        block_set = cls.BLOCKMAPPING[attribute]
+        state = cls.STATE_NOT_MODIFIED
+        # TODO: Any regular broadcast blocks encountered in the initialization
+        # zone should be added to this loop for conflict checking.
+        for script in partition[0]:
+            in_zone = True
+            for name, level, _ in cls.iter_blocks(script.blocks):
+                if name == 'broadcast %e and wait':
+                    # TODO: Follow the broadcast and wait scripts that occur in
+                    # the initialization zone
+                    in_zone = False
+                if (name, 'absolute') in block_set:
+                    if in_zone and level == 0:  # Success!
+                        if state == cls.STATE_NOT_MODIFIED:
+                            state = cls.STATE_INITIALIZED
+                        else:  # Multiple when green flag clicked conflict
+                            state = cls.STATE_MODIFIED
+                    elif in_zone:
+                        continue  # Conservative ignore for nested absolutes
+                    else:
+                        state = cls.STATE_MODIFIED
+                    break  # The state of the script has been determined
+                elif (name, 'relative') in block_set:
+                    state = cls.STATE_MODIFIED
+                    break
+        if state != cls.STATE_NOT_MODIFIED:
+            return state
+        # Check the other scripts to see if the attribute was ever modified
+        for script in partition[1]:
+            for name, _, _ in cls.iter_blocks(script.blocks):
+                if name in [x[0] for x in block_set]:
+                    return cls.STATE_MODIFIED
+        return cls.STATE_NOT_MODIFIED
+
+    @classmethod
+    def output_results(cls, sprites):
+        """Output whether or not each attribute was correctly initialized.
+
+        Attributes that were not modified at all are considered to be properly
+        initialized.
+
+        """
+        print(' '.join(cls.ATTRIBUTES))
+        format_strs = ['{{{0}!s:^{1}}}'.format(x, len(x)) for x in
+                       cls.ATTRIBUTES]
+        print(' '.join(format_strs).format(**cls.attribute_result(sprites)))
+
+    @classmethod
+    def sprite_changes(cls, sprite):
+        """Return a mapping of attributes to their initilization state."""
+        partition = partition_scripts(sprite.scripts, cls.HAT_GREEN_FLAG)
+        retval = dict((x, cls.attribute_state(partition, x)) for x in
+                      (x for x in cls.ATTRIBUTES if x != 'background'))
+        return retval
 
     def analyze(self, scratch):
-        attribute_changes = dict()
-        for sprite in scratch.stage.sprites:
-            attribute_changes[sprite.name] = self.sprite_changes(sprite)
-        attribute_changes["stage"] = {}
-        gf, other = self.pull_hat(self.HAT_GREEN_FLAG, scratch.stage.scripts)
-        attribute_changes["stage"]["background"] = self.gen_change(
-            scratch.stage, gf, other, self.BLOCKMAPPING["costume"])
-        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
-            (group, project) = (scratch.group, scratch.project)
-            self.initialization[(group, project)] = copy.deepcopy(
-                attribute_changes)
-        return {'initialized': attribute_changes}
+        """Run and return the results of the initial state plugin."""
+        changes = dict((x.name, self.sprite_changes(x)) for x in
+                       scratch.stage.sprites)
+        partition = partition_scripts(scratch.stage.scripts,
+                                      self.HAT_GREEN_FLAG)
+        changes['stage'] = {'background': self.attribute_state(partition,
+                                                               'costume')}
+        self.output_results(changes)
+        return {'initialized': changes}
 
 
 class Variables(HairballPlugin):
@@ -128,60 +121,53 @@ class Variables(HairballPlugin):
     Checks if variables were changed and if so, if they were initialized.
     """
     def local_vars(self, sprite):
-        greenflag, other = self.pull_hat(self.HAT_GREEN_FLAG,
-                                         list(sprite.scripts))
-        variables = dict()
+        green_flag, other = partition_scripts(sprite.scripts,
+                                              self.HAT_GREEN_FLAG)
+        variables = dict((x, 'unused') for x in sprite.vars)
         bandw = False
-        for var in sprite.vars.keys():
-            variables[var] = "unused"
-        for script in greenflag:
+        for script in green_flag:
             for name, level, block in self.iter_blocks(script.blocks):
-                if name == "broadcast %e and wait":
+                if name == 'broadcast %e and wait':
                     bandw = True
-                if name == "set %v to %s" and level == 0 and not bandw:
+                if name == 'set %v to %s' and level == 0 and not bandw:
                     if block.args[0] in variables.keys():
                         variables[block.args[0]] = 'set'
-                elif name == "set %v to %s" or name == "change %v by %n":
-                    if (block.args[0], "unused") in variables.items():
-                        variables[block.args[0]] = "changed"
+                elif name == 'set %v to %s' or name == 'change %v by %n':
+                    if (block.args[0], 'unused') in variables.items():
+                        variables[block.args[0]] = 'changed'
         for script in other:
             for name, level, block in self.iter_blocks(script.blocks):
-                if name == "set %v to %s" or name == "change %v by %n":
-                    if (block.args[0], "unused") in variables.items():
-                        variables[block.args[0]] = "changed"
+                if name == 'set %v to %s' or name == 'change %v by %n':
+                    if (block.args[0], 'unused') in variables.items():
+                        variables[block.args[0]] = 'changed'
         return variables
 
     def global_vars(self, scratch):
         bandw = False
-        variables = dict()
-        for key in scratch.stage.vars.keys():
-            variables[key] = "unchanged"
-        gf = []
-        other = []
-        scripts = scratch.stage.scripts[:]
-        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        gf, other = self.pull_hat(self.HAT_GREEN_FLAG, scripts)
-        for script in gf:
+        variables = dict((x, 'unchanged') for x in scratch.stage.vars)
+        green_flag, other = partition_scripts(self.iter_scripts(scratch),
+                                              self.HAT_GREEN_FLAG)
+        for script in green_flag:
             for name, level, block in self.iter_blocks(script.blocks):
-                if name == "broadcast %e and wait":
+                if name == 'broadcast %e and wait':
                     bandw = True
-                if name == "set %v to %s" and level == 0 and not bandw:
+                if name == 'set %v to %s' and level == 0 and not bandw:
                     if block.args[0] in variables.keys():
                         variables[block.args[0]] = 'set'
-                elif name == "set %v to %s" or name == "change %v by %n":
-                    if (block.args[0], "unchanged") in variables.items():
-                        variables[block.args[0]] = "changed"
+                elif name == 'set %v to %s' or name == 'change %v by %n':
+                    if (block.args[0], 'unchanged') in variables.items():
+                        variables[block.args[0]] = 'changed'
             bandw = False
         for script in other:
             for name, level, block in self.iter_blocks(script.blocks):
-                if name == "set %v to %s" or name == "change %v by %n":
-                    if (block.args[0], "unchanged") in variables.items():
-                        variables[block.args[0]] = "changed"
+                if name == 'set %v to %s' or name == 'change %v by %n':
+                    if (block.args[0], 'unchanged') in variables.items():
+                        variables[block.args[0]] = 'changed'
         return variables
 
     def analyze(self, scratch):
         variables = dict()
         for sprite in scratch.stage.sprites:
             variables[sprite.name] = self.local_vars(sprite)
-        variables["global"] = self.global_vars(scratch)
+        variables['global'] = self.global_vars(scratch)
         return {'variables': variables}
