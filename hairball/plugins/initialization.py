@@ -40,19 +40,20 @@ class Initialization(HairballPlugin):
         return retval
 
     @classmethod
-    def attribute_state(cls, partition, attribute):
-        """Return the state of the partition for the given attribute.
+    def attribute_state(cls, scripts, attribute):
+        """Return the state of the scripts for the given attribute.
 
         If there is more than one `when green flag clicked` script and they
         both modify the attribute, then the attribute is considered to not be
         initialized.
 
         """
+        green_flag, other = partition_scripts(scripts, cls.HAT_GREEN_FLAG)
         block_set = cls.BLOCKMAPPING[attribute]
         state = cls.STATE_NOT_MODIFIED
         # TODO: Any regular broadcast blocks encountered in the initialization
         # zone should be added to this loop for conflict checking.
-        for script in partition[0]:
+        for script in green_flag:
             in_zone = True
             for name, level, _ in cls.iter_blocks(script.blocks):
                 if name == 'broadcast %e and wait':
@@ -76,7 +77,7 @@ class Initialization(HairballPlugin):
         if state != cls.STATE_NOT_MODIFIED:
             return state
         # Check the other scripts to see if the attribute was ever modified
-        for script in partition[1]:
+        for script in other:
             for name, _, _ in cls.iter_blocks(script.blocks):
                 if name in [x[0] for x in block_set]:
                     return cls.STATE_MODIFIED
@@ -98,8 +99,7 @@ class Initialization(HairballPlugin):
     @classmethod
     def sprite_changes(cls, sprite):
         """Return a mapping of attributes to their initilization state."""
-        partition = partition_scripts(sprite.scripts, cls.HAT_GREEN_FLAG)
-        retval = dict((x, cls.attribute_state(partition, x)) for x in
+        retval = dict((x, cls.attribute_state(sprite.scripts, x)) for x in
                       (x for x in cls.ATTRIBUTES if x != 'background'))
         return retval
 
@@ -107,10 +107,9 @@ class Initialization(HairballPlugin):
         """Run and return the results of the initial state plugin."""
         changes = dict((x.name, self.sprite_changes(x)) for x in
                        scratch.stage.sprites)
-        partition = partition_scripts(scratch.stage.scripts,
-                                      self.HAT_GREEN_FLAG)
-        changes['stage'] = {'background': self.attribute_state(partition,
-                                                               'costume')}
+        changes['stage'] = {
+            'background': self.attribute_state(scratch.stage.scripts,
+                                               'costume')}
         self.output_results(changes)
         return {'initialized': changes}
 
