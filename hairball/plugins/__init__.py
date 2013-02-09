@@ -56,23 +56,12 @@ class HairballPlugin(object):
                  if isinstance(block, kurt.scripts.Block)]
         while queue:
             block, depth = queue.pop(0)
-            if block.command == 'EventHatMorph':
-                assert depth == 0
-                if block.args[0] == 'Scratch-StartClicked':
-                    yield 'when green flag clicked', depth, block
-                else:
-                    yield 'when I receive %e', depth, block
-            elif block.command == 'changeVariable':
-                if 'setVar' in str(block.args[1]):
-                    yield 'set %v by %n', depth, block
-                else:
-                    yield block.type.text, depth, block
-            elif block.command == '':
-                # Not sure if this ever actually happens
-                print('WARN: Empty command')
-                continue
+            assert block.command
+            if block.command in ('changeVariable', 'EventHatMorph'):
+                yield block.type.text, depth, block
             else:
                 if block.command == 'doIfElse':
+                    # Cannot use block.type.text because it's only 'if %b'
                     yield 'if %b else', depth, block
                 else:
                     yield block.type.text, depth, block
@@ -175,7 +164,11 @@ class HairballPlugin(object):
         return self.__doc__.split('\n')[0]
 
     def _process(self, scratch, **kwargs):
-        """Internal hook to the analyze function."""
+        """Internal hook that marks reachable scripts before calling analyze.
+
+        Returns data exactly as returned by the analyze method.
+
+        """
         if not scratch.hairball_prepared:
             self.tag_reachable_scripts(scratch)
         return self.analyze(scratch, **kwargs)
