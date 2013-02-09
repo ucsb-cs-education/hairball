@@ -1,6 +1,6 @@
 """This module provides plugins for checking initialization."""
 
-from . import HairballPlugin
+from hairball.plugins import HairballPlugin
 
 
 def partition_scripts(scripts, start_type):
@@ -19,7 +19,7 @@ def partition_scripts(scripts, start_type):
     return match, other
 
 
-class Initialization(HairballPlugin):
+class AttributeInitialization(HairballPlugin):
 
     """Plugin that checks if modified attributes are properly initialized."""
 
@@ -104,7 +104,7 @@ class Initialization(HairballPlugin):
         return retval
 
     def analyze(self, scratch):
-        """Run and return the results of the initial state plugin."""
+        """Run and return the results of the AttributeInitialization plugin."""
         changes = dict((x.name, self.sprite_changes(x)) for x in
                        scratch.stage.sprites)
         changes['stage'] = {
@@ -114,59 +114,71 @@ class Initialization(HairballPlugin):
         return {'initialized': changes}
 
 
-class Variables(HairballPlugin):
-    """Variable change and initialization
+class VariableInitialization(HairballPlugin):
 
-    Checks if variables were changed and if so, if they were initialized.
-    """
-    def local_vars(self, sprite):
-        green_flag, other = partition_scripts(sprite.scripts,
-                                              self.HAT_GREEN_FLAG)
-        variables = dict((x, 'unused') for x in sprite.vars)
-        bandw = False
-        for script in green_flag:
-            for name, level, block in self.iter_blocks(script.blocks):
-                if name == 'broadcast %e and wait':
-                    bandw = True
-                if name == 'set %v to %s' and level == 0 and not bandw:
-                    if block.args[0] in variables.keys():
-                        variables[block.args[0]] = 'set'
-                elif name == 'set %v to %s' or name == 'change %v by %n':
-                    if (block.args[0], 'unused') in variables.items():
-                        variables[block.args[0]] = 'changed'
-        for script in other:
-            for name, level, block in self.iter_blocks(script.blocks):
-                if name == 'set %v to %s' or name == 'change %v by %n':
-                    if (block.args[0], 'unused') in variables.items():
-                        variables[block.args[0]] = 'changed'
-        return variables
+    """Plugin that checks if modified variables are properly initialized."""
 
-    def global_vars(self, scratch):
-        bandw = False
-        variables = dict((x, 'unchanged') for x in scratch.stage.vars)
-        green_flag, other = partition_scripts(self.iter_scripts(scratch),
-                                              self.HAT_GREEN_FLAG)
+    STATE_NOT_MODIFIED = 0
+    STATE_MODIFIED = 1
+    STATE_INITIALIZED = 2
+
+    @classmethod
+    def variable_state(cls, scripts, variables):
+        """Return the initialization state for each variable in variables.
+
+        The state is determined based on the scripts passed in via the scripts
+        parameter.
+
+        If there is more than one `when green flag clicked` script and they
+        both modify the attribute, then the attribute is considered to not be
+        initialized.
+
+        """
+        def conditionally_set_not_modified():
+            """Set the variable to modified if it hasn't been altered."""
+            state = variables.get(block.args[0], None)
+            if state == cls.STATE_NOT_MODIFIED:
+                variables[block.args[0]] = cls.STATE_MODIFIED
+
+        green_flag, other = partition_scripts(scripts, cls.HAT_GREEN_FLAG)
+        variables = dict((x, cls.STATE_NOT_MODIFIED) for x in variables)
         for script in green_flag:
-            for name, level, block in self.iter_blocks(script.blocks):
+            in_zone = True
+            for name, level, block in cls.iter_blocks(script.blocks):
                 if name == 'broadcast %e and wait':
-                    bandw = True
-                if name == 'set %v to %s' and level == 0 and not bandw:
-                    if block.args[0] in variables.keys():
-                        variables[block.args[0]] = 'set'
-                elif name == 'set %v to %s' or name == 'change %v by %n':
-                    if (block.args[0], 'unchanged') in variables.items():
-                        variables[block.args[0]] = 'changed'
-            bandw = False
+                    in_zone = False
+                if name == 'set %v to %s':
+                    state = variables.get(block.args[0], None)
+                    if state is None:
+                        continue  # Not a variable we care about
+                    if in_zone and level == 0:  # Success!
+                        if state == cls.STATE_NOT_MODIFIED:
+                            state = cls.STATE_INITIALIZED
+                        else:  # Multiple when green flag clicked conflict
+                            # TODO: Need to allow multiple sets of a variable
+                            # within the same script
+                            #print 'CONFLICT', script
+                            state = cls.STATE_MODIFIED
+                    elif in_zone:
+                        continue  # Conservative ignore for nested absolutes
+                    elif state == cls.STATE_NOT_MODIFIED:
+                        state = cls.STATE_MODIFIED
+                    variables[block.args[0]] = state
+                elif name == 'change %v by %n':
+                    conditionally_set_not_modified()
         for script in other:
-            for name, level, block in self.iter_blocks(script.blocks):
-                if name == 'set %v to %s' or name == 'change %v by %n':
-                    if (block.args[0], 'unchanged') in variables.items():
-                        variables[block.args[0]] = 'changed'
+            for name, _, block in cls.iter_blocks(script.blocks):
+                if name in ('change %v by %n', 'set %v to %s'):
+                    conditionally_set_not_modified()
         return variables
 
     def analyze(self, scratch):
-        variables = dict()
-        for sprite in scratch.stage.sprites:
-            variables[sprite.name] = self.local_vars(sprite)
-        variables['global'] = self.global_vars(scratch)
+        """Run and return the results of the VariableInitialization plugin."""
+        variables = dict((x, self.variable_state(x.scripts, x.variables))
+                         for x in scratch.stage.sprites)
+        variables['global'] = self.variable_state(self.iter_scripts(scratch),
+                                                  scratch.stage.variables)
+        # Output for now
+        import pprint
+        pprint.pprint(variables)
         return {'variables': variables}
