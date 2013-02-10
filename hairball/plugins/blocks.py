@@ -1,81 +1,68 @@
+"""This module provides plugins for basic block statistics."""
+
 from collections import Counter
-import copy
-from . import HairballPlugin
+from hairball.plugins import HairballPlugin
 
 
-class BlockTypes(HairballPlugin):
-    """Block Types
+class BlockCounts(HairballPlugin):
 
-    Produces a count of each type of block contained in a scratch file.
-    """
-    def analyze(self, scratch):
-        blocks = Counter()
-        scripts = scratch.stage.scripts[:]
-        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        for script in scripts:
-            for name, level, block in self.iter_blocks(script.blocks):
-                blocks.update({name: 1})
-        return {'types': blocks.most_common()}
+    """Plugin that keeps track of how often each block is used."""
 
-
-class BlockTotals(HairballPlugin):
-    """Block Totals
-
-    Produces a count of each type of block contained in all the scratch files.
-    """
     def __init__(self):
-        super(BlockTotals, self).__init__()
+        super(BlockCounts, self).__init__()
         self.blocks = Counter()
 
     def finalize(self):
+        """Output the aggregate block count results."""
         for name, count in sorted(self.blocks.items(), key=lambda x: x[1]):
             print('{0:3} {1}'.format(count, name))
         print('{0:3} total'.format(sum(self.blocks.values())))
 
     def analyze(self, scratch):
-        scripts = scratch.stage.scripts[:]
-        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        for script in scripts:
-            for name, level, block in self.iter_blocks(script.blocks):
-                self.blocks.update({name: 1})
-        return {'types': self.blocks}
+        """Run and return the results from the BlockCounts plugin."""
+        file_blocks = Counter()
+        for script in self.iter_scripts(scratch):
+            for name, _, _ in self.iter_blocks(script.blocks):
+                file_blocks.update({name: 1})
+        self.blocks.update(file_blocks)  # Update the overall count
+        return {'types': file_blocks}
 
 
 class DeadCode(HairballPlugin):
-    """Dead Code
 
-    Shows all of the dead code for each sprite in a scratch file.
-    """
+    """Plugin that indicates unreachable code in Scratch files."""
+
     def __init__(self):
         super(DeadCode, self).__init__()
-        self.dead = {}
-
-    def finalize(self):
-        file = open('deadcode.txt', 'w')
-        file.write("activity, pair, variable_event, sprites with dead code\n")
-        for ((group, project), (variable_event, sprite_dict)) in\
-                self.blocks.items():
-            file.write('\n')
-            file.write(project)
-            file.write(', ')
-            file.write(group)
-            file.write(', ')
-            file.write(variable_event)
-            for key in sprite_dict.keys():
-                file.write(', ')
-                file.write(key)
+        self.total_instances = 0
+        self.dead_code_instances = 0
 
     def analyze(self, scratch):
+        """Run and return the results form the DeadCode plugin.
+
+        The variable_event indicates that the Scratch file contains at least
+        one instance of a broadcast event based on a variable. When
+        variable_event is True, dead code scripts reported by this plugin that
+        begin with a "when I receive" block may not actually indicate dead
+        code.
+
+        """
+        self.total_instances += 1
         sprites = {}
-        scripts = scratch.stage.scripts[:]
-        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        for script in scripts:
-            if script.morph.name not in sprites.keys():
-                sprites[script.morph.name] = []
+        for script in self.iter_scripts(scratch):
             if not script.reachable:
-                sprites[script.morph.name].append(script)
-        variable_event = True in self.get_broadcast_events(scripts)
-        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
-            self.dead[(scratch.group, scratch.project)] = (
-                variable_event, copy.deepcopy(sprites))
-        return {'deadcode': (variable_event, sprites)}
+                sprites.setdefault(script.morph.name, []).append(script)
+        if sprites:
+            self.dead_code_instances += 1
+            import pprint
+            pprint.pprint(sprites)
+        variable_event = any(True in self.get_broadcast_events(x) for x in
+                             self.iter_scripts(scratch))
+        return {'dead_code': {'sprites': sprites,
+                              'variable_event': variable_event}}
+
+    def finalize(self):
+        """Output the number of instances that contained dead code."""
+        if self.total_instances > 1:
+            print('{0} of {1} instances contained dead code.'
+                  .format(self.dead_code_instances, self.total_instances))
