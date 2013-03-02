@@ -21,27 +21,27 @@ class HairballPlugin(object):
     HAT_OTHER = 2  # mouse or key press
     NOT_HAT = 3
 
-    BLOCKMAPPING = {'costume': set([('switch to background %l', 'absolute'),
-                                    ('next background', 'relative'),
-                                    ('switch to costume %l', 'absolute'),
-                                    ('next costume', 'relative')]),
-                    'orientation': set([('turn cw %n degrees', 'relative'),
-                                        ('turn ccw %n degrees', 'relative'),
-                                        ('point in direction %d', 'absolute'),
-                                        ('point towards %m', 'relative')]),
-                    'position': set([('move %n steps', 'relative'),
-                                     ('go to x:%n y:%n', 'absolute'),
-                                     ('go to %m', 'relative'),
-                                     ('glide %n secs to x:%n y:%n',
-                                      'relative'),
-                                     ('change x by %n', 'relative'),
-                                     ('x position', 'absolute'),
-                                     ('change y by %n', 'relative'),
-                                     ('y position', 'absolute')]),
-                    'size': set([('change size by %n', 'relative'),
-                                 ('set size to %n%', 'absolute')]),
-                    'visibility': set([('hide', 'absolute'),
-                                       ('show', 'absolute')])}
+    BLOCKMAPPING = {
+        'costume': frozenset([('switch to background %l', 'absolute'),
+                              ('next background', 'relative'),
+                              ('switch to costume %l', 'absolute'),
+                              ('next costume', 'relative')]),
+        'orientation': frozenset([('turn cw %n degrees', 'relative'),
+                                  ('turn ccw %n degrees', 'relative'),
+                                  ('point in direction %d', 'absolute'),
+                                  ('point towards %m', 'relative')]),
+        'position': frozenset([('move %n steps', 'relative'),
+                               ('go to x:%n y:%n', 'absolute'),
+                               ('go to %m', 'relative'),
+                               ('glide %n secs to x:%n y:%n', 'relative'),
+                               ('change x by %n', 'relative'),
+                               ('x position', 'absolute'),
+                               ('change y by %n', 'relative'),
+                               ('y position', 'absolute')]),
+        'size': frozenset([('change size by %n', 'relative'),
+                           ('set size to %n%', 'absolute')]),
+        'visibility': frozenset([('hide', 'absolute'),
+                                 ('show', 'absolute')])}
 
     @staticmethod
     def iter_blocks(block_list):
@@ -128,7 +128,7 @@ class HairballPlugin(object):
         reachable = set()
         untriggered_events = {}
         # Initial pass to find reachable and potentially reachable scripts
-        for script in list(cls.iter_scripts(scratch)):
+        for script in cls.iter_scripts(scratch):
             starting_type = cls.script_start_type(script)
             if starting_type == cls.NOT_HAT:
                 script.reachable = False
