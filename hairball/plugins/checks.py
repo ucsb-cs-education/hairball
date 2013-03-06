@@ -1,181 +1,123 @@
-import copy
+"""This module provides plugins used in the hairball paper."""
+
 from collections import Counter
-from . import HairballPlugin
+from hairball.plugins import HairballPlugin
 
 
 class Animation(HairballPlugin):
-    """Animation
 
-    Checks for possible errors relating to animation.
+    """Plugin that checks for instances of 'complex animation'.
+
     Animation should include loops, motion, timing, and costume changes.
+
     """
-    def __init__(self):
-        super(Animation, self).__init__()
-        self.animation = {}
 
-    def finalize(self):
-        file = open('animation.txt', 'w')
-        file.write("activity, pair: 3 2 1 0")
-        for ((group, project), results) in self.animation.items():
-            file.write('\n{0}, {1}: '.format(project, group))
-            file.write('{0} {1} {2} {3}'
-                       .format(results[3], results[2],
-                               results[1], results[0]))
+    COSTUME = frozenset(['switch to costume %l', 'next costume'])
+    LOOP = frozenset(['repeat %n', 'repeat until %b', 'forever',
+                      'forever if %b'])
+    MOTION = frozenset(['change y by %n', 'change x by %n',
+                        'glide %n secs to x:%n y:%n',
+                        'move %n steps', 'go to x:%n y:%n'])
+    ROTATE = frozenset(['turn cw %n degrees', 'turn ccw %n degrees',
+                        'point in direction %d'])
+    SIZE = frozenset(['change size by %n', 'set size to %n%'])
+    TIMING = frozenset(['wait %n secs', 'glide %n secs to x:%n y:%n'])
+    ANIMATION = COSTUME | LOOP | MOTION | ROTATE | SIZE | TIMING
 
-    def check_results(self, a):
-        if a['t'] > 0:
-            if a['l'] > 0:
-                if a['rr'] > 0 or a['ra'] > 1:
-                    print 1, 3, a
+    @staticmethod
+    def check_results(tmp_):
+        """Return a 3 tuple for something."""
+        # TODO: Fix this to work with more meaningful names
+        if tmp_['t'] > 0:
+            if tmp_['l'] > 0:
+                if tmp_['rr'] > 0 or tmp_['ra'] > 1:
+                    print 1, 3, tmp_
                     return 3
-                elif a['cr'] > 0 or a['ca'] > 1:
-                    print 2, 3, a
+                elif tmp_['cr'] > 0 or tmp_['ca'] > 1:
+                    print 2, 3, tmp_
                     return 3
-                elif a['mr'] > 0 or a['ma'] > 1:
-                    print 3, 2, a
+                elif tmp_['mr'] > 0 or tmp_['ma'] > 1:
+                    print 3, 2, tmp_
                     return 2
-            if a['cr'] > 1 or a['ca'] > 2:
-                print 4, 2, a
+            if tmp_['cr'] > 1 or tmp_['ca'] > 2:
+                print 4, 2, tmp_
                 return 2
-            if a['mr'] > 0 or a['ma'] > 1:
-                if a['cr'] > 0 or a['ca'] > 1:
-                    print 6, 0, a
+            if tmp_['mr'] > 0 or tmp_['ma'] > 1:
+                if tmp_['cr'] > 0 or tmp_['ca'] > 1:
+                    print 6, 0, tmp_
                     return 0
-            if a['rr'] > 1 or a['ra'] > 2:
-                print 7, 0, a
+            if tmp_['rr'] > 1 or tmp_['ra'] > 2:
+                print 7, 0, tmp_
                 return 0
-            if a['sr'] > 1 or a['sa'] > 2:
-                print 8, 0, a
+            if tmp_['sr'] > 1 or tmp_['sa'] > 2:
+                print 8, 0, tmp_
                 return 0
-        if a['l'] > 0:
-            if a['rr'] > 0 or a['ra'] > 1:
-                print 9, 2, a
+        if tmp_['l'] > 0:
+            if tmp_['rr'] > 0 or tmp_['ra'] > 1:
+                print 9, 2, tmp_
                 return 2
-            if a['cr'] > 0 or a['ca'] > 1:
-                print 10, 0, a
+            if tmp_['cr'] > 0 or tmp_['ca'] > 1:
+                print 10, 0, tmp_
                 return 0
         return -1
 
     def check_animation(self, last, last_level, gen):
-        loop = set(["repeat %n", "repeat until %b",
-                    "forever", "forever if %b"])
-        costume = set(["switch to costume %l", "next costume"])
-        rotate = set(["turn cw %n degrees", "turn ccw %n degrees",
-                      "point in direction %d"])
-        motion = set(["change y by %n", "change x by %n",
-                      "glide %n secs to x:%n y:%n",
-                      "move %n steps", "go to x:%n y:%n"])
-        timing = set(["wait %n secs", "glide %n secs to x:%n y:%n"])
-        size = set(["change size by %n", "set size to %n%"])
-        animation = costume | rotate | motion | timing | loop | size
-        a = Counter()
+        tmp_ = Counter()
         results = Counter()
-        (name, level, block) = (last, last_level, last)
+        name, level, block = last, last_level, last
         others = False
-        last_level = last_level
-        while name in animation and level >= last_level:
-            if name in loop:
+        while name in self.ANIMATION and level >= last_level:
+            if name in self.LOOP:
                 if block != last:
-                    count = self.check_results(a)
+                    count = self.check_results(tmp_)
                     if count > -1:
-                        results.update({count: 1})
-                    a.clear()
-                a.update({'l': 1})
-            if (name, "relative") in self.BLOCKMAPPING["costume"]:
-                a.update({'cr': 1})
-            elif (name, "absolute") in self.BLOCKMAPPING["costume"]:
-                a.update({'ca': 1})
-            if (name, "relative") in self.BLOCKMAPPING["orientation"]:
-                a.update({'rr': 1})
-            elif (name, "absolute") in self.BLOCKMAPPING["orientation"]:
-                a.update({'ra': 1})
-            if (name, "relative") in self.BLOCKMAPPING["position"]:
-                a.update({'mr': 1})
-            elif (name, "absolute") in self.BLOCKMAPPING["position"]:
-                a.update({'ma': 1})
-            if (name, "relative") in self.BLOCKMAPPING["size"]:
-                a.update({'sr': 1})
-            elif (name, "absolute") in self.BLOCKMAPPING["size"]:
-                a.update({'sa': 1})
-            if name in timing:
-                a.update({'t': 1})
+                        results[count] += 1
+                    tmp_.clear()
+                tmp_['last'] += 1
+
+            for attribute in ('costume', 'orientation', 'position', 'size'):
+                if (name, 'relative') in self.BLOCKMAPPING[attribute]:
+                    tmp_[(attribute, 'relative')] += 1
+                elif (name, 'absolute') in self.BLOCKMAPPING[attribute]:
+                    tmp_[(attribute, 'absolute')] += 1
+            if name in self.TIMING:
+                tmp_['timing'] += 1
+
             last_level = level
-            (name, level, block) = next(gen, ("", 0, ""))
+            name, level, block = next(gen, ('', 0, ''))
             # allow some exceptions
-            if name not in animation and name != "":
+            if name not in self.ANIMATION and name != '':
                 if not others:
                     if block.type.flag != 't':
                         last_level = level
-                        (name, level, block) = next(gen, ("", 0, ""))
+                        (name, level, block) = next(gen, ('', 0, ''))
                         others = True
-        count = self.check_results(a)
+        count = self.check_results(tmp_)
         if count > -1:
-            results.update({count: 1})
+            results[count] += 1
         return gen, results
 
     def analyze(self, scratch):
-        print scratch.group
-        scripts = []
-        [scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        loop = set(["repeat %n", "repeat until %b",
-                    "forever", "forever if %b"])
-        costume = set(["switch to costume %l", "next costume"])
-        rotate = set(["turn cw %n degrees", "turn ccw %n degrees",
-                      "point in direction %d"])
-        motion = set(["change y by %n", "change x by %n",
-                      "glide %n secs to x:%n y:%n",
-                      "move %n steps", "go to x:%n y:%n"])
-        timing = set(["wait %n secs", "glide %n secs to x:%n y:%n"])
-        size = set(["change size by %n", "set size to %n%"])
-        animation = costume | rotate | motion | timing | loop | size
-        a = Counter()
-        for script in scripts:
+        results = Counter()
+        for script in self.iter_scripts(scratch):
             gen = self.iter_blocks(script.blocks)
-            name = "start"
+            name = 'start'
             level = None
-            while name != "":
-                if name in animation:
-                    (gen, count) = self.check_animation(name, level, gen)
-                    a.update(count)
-                (name, level, block) = next(gen, ("", 0, ""))
-        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
-            self.animation[(scratch.group,
-                            scratch.project)] = copy.deepcopy(a)
-        return {'animation': a}
+            while name != '':
+                if name in self.ANIMATION:
+                    gen, count = self.check_animation(name, level, gen)
+                    results.update(count)
+                name, level, _ = next(gen, ('', 0, ''))
+        return {'animation': results}
 
 
 class BroadcastReceive(HairballPlugin):
-    """Broadcast Receive
 
-    Shows possible errors relating to broadcast and receive blocks
-    """
-    def __init__(self):
-        super(BroadcastReceive, self).__init__()
-        self.broadcast = {}
-
-    def finalize(self):
-        file = open('broadcastreceive.txt', 'w')
-        file.write("activity, pair: 3 1 0")
-        for ((group, project), mistakes) in self.broadcast.items():
-            file.write('\n{0}, {1}: '.format(project, group))
-            if len(mistakes) != 0:
-                if project == "06_MayanConversation":
-                    self.mayan(mistakes)
-                zero = len(mistakes[2]) + len(mistakes[3]) + len(mistakes[1])
-                one = len(mistakes[4] | mistakes[5])
-                three = len(mistakes[6])
-                file.write("{0} {1} {2}".format(three, one, zero))
-
-    def mayan(self, mistakes):
-        for x in range(7):
-            if "final scene" in mistakes[x]:
-                mistakes[x].remove("final scene")
-        return mistakes
+    """Plugin that checks for proper usage of broadcast and receive blocks."""
 
     def get_receive(self, script_list):
         messages = {}
-        scripts = script_list[:]
-        for script in scripts:
+        for script in script_list:
             if self.script_start_type(script) == self.HAT_WHEN_I_RECEIVE:
                 message = script.blocks[0].args[0].lower()
                 if message not in messages.keys():
@@ -183,81 +125,71 @@ class BroadcastReceive(HairballPlugin):
                 messages[message].add(script)
         return messages
 
-    def broadcast_scripts(self, script_list):
-        scripts = script_list[:]
-        events = {}
-        for script in scripts:
-            events[script] = self.get_broadcast_events(script)
-        return events
-
     def analyze(self, scratch):
-        all_scripts = scratch.stage.scripts[:]
-        [all_scripts.extend(x.scripts) for x in scratch.stage.sprites]
-        errors = {}
-        errors[0] = set()  # sprites who broadcast variable-events
-        errors[1] = set()  # message is broadcasted in dead code
-        errors[2] = set()  # message is never broadcast
-        errors[3] = set()  # message is never received
-        errors[4] = set()  # message has parallel scripts with timing
-        # below: maybe check all scripts with the same hat block
-        errors[5] = set()  # messages are broadcast in scripts that contain
+        all_scripts = list(self.iter_scripts(scratch))
+        results = {}
+        results[0] = set()  # sprites who broadcast variable-events
+        results[1] = set()  # message is broadcasted in dead code
+        results[2] = set()  # message is never broadcast
+        results[3] = set()  # message is never received
+        results[4] = set()  # message has parallel scripts with timing
+        results[5] = set()  # messages are broadcast in scripts that contain
                            # other broadcasts
-        errors[6] = set()  # working
-        errors[7] = set()  # TO DO
-        broadcast = self.broadcast_scripts(all_scripts)
+        results[6] = set()  # working
+
+        broadcast = dict((x, self.get_broadcast_events(x))  # Events by script
+                         for x in all_scripts)
         receive = self.get_receive(all_scripts)
         received_messages = set()
         for message in receive.keys():
             received_messages.add(message)
-            errors[3].add(message)
+            results[3].add(message)
         # first remove all variable-event broadcast scripts
         for script, messages in broadcast.items():
             for message in messages:
                 if message is True:
-                    errors[0].add(script.morph.name)
+                    results[0].add(script.morph.name)
                     #del message  # TODO: what was this meant to do?
                 # then remove messages that aren't received or broadcast
                 elif message in received_messages:
-                    if message in errors[3]:
-                        errors[3].remove(message)
+                    if message in results[3]:
+                        results[3].remove(message)
                 else:
-                    errors[2].add(message)
+                    results[2].add(message)
         for message in receive.keys():
             if message not in received_messages:
                 del receive[message]
-            if message in errors[3]:
+            if message in results[3]:
                 del receive[message]
         # now find error 4
         for message, scripts in receive.items():
             if len(scripts) > 1:
                 for script in scripts:
-                    for name, level, block in self.iter_blocks(script.blocks):
+                    for _, _, block in self.iter_blocks(script.blocks):
                         if block.type.flag == 't':
-                            errors[4].add(message)
+                            results[4].add(message)
         # now find error 5
         for script, messages in broadcast.items():
             if len(messages) > 1:
                 for message in messages:
                     if message in receive.keys():
-                        errors[5].add(message)
+                        results[5].add(message)
         # finally, get the working messages
         for message in receive.keys():
-            if message not in errors[4] and message not in errors[5]:
-                errors[6].add(message)
-        if hasattr(scratch, 'group') and hasattr(scratch, 'project'):
-            self.broadcast[(scratch.group,
-                            scratch.project)] = errors
-        return {'broadcast': errors}
+            if message not in results[4] and message not in results[5]:
+                results[6].add(message)
+        return {'broadcast': results}
 
 
 class SaySoundSync(HairballPlugin):
-    """Say and sound synchronization
 
-    Checks for errors when dealing with sound/say bubble synchronization
+    """Plugin that checks for synchronization between say and sound blocks.
+
     The order should be:
     Say "___",
     Play sound "___" until done,
     Say ""
+
     """
 
     CORRECT = -1
