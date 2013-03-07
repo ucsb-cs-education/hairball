@@ -1,95 +1,52 @@
-# Installation for development
+# Hairball
 
-## Prerequisites
+Hairball is a plugin-able framework useful for static analysis of Scratch projects.
 
- * virtualenv
+The paper and presentation slides for Hairball can be found at: http://cs.ucsb.edu/~bboe/p/cv#sigcse13
 
-To install `virtualenv` a python package installer is
-required. This instruction will use `pip`.
+A Hairball demo web service is running and available at: http://hairball.herokuapp.com
 
-### Ubuntu/debian installation of prerequisites
 
-        sudo apt-get install python-setuptools
-        sudo easy_install pip
+## Hairball installation
 
-### Mac OS X installation of prerequisites
+With a proper python environment (one which has `pip` available), installation is as simple as `pip install hairball`. `easy_install` can also be used via `easy_install hairball`.
 
-        sudo easy_install pip
-        sudo pip install virtualenv
-        # Follow these instructions for git installation
-        # https://help.github.com/articles/set-up-git#platform-mac
+To install from source, first checkout this project and then navigate your
+command-line interface to the outer hairball directory that contains `setup.py`. Then run `python setup.py install`.
 
-## Configure and become familiar with git
+## Running Hairball
 
-Regardless of how you installed git, please follow
-[these](https://help.github.com/articles/set-up-git#platform-all) instructions
-beginning with the section "Set Up Git" to configure your name and email
-combination. Also, if you are not familiar with git, please go through the
-[try.github.com](http://try.github.com/) tutorial.
+Once installed, to see how to use hairball run `hairball --help`. That will produce output similar to the following:
 
-## Check out the project and run in development mode
+```
+Usage: hairball -p PLUGIN_NAME [options] PATH...
 
-0. Check out the source
+PATH can be either the path to a scratch file, or a directory containing
+scratch files. Multiple PATH arguments can be provided.
 
-        git clone git@github.com:ucsb-cs-education/hairball.git
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -d DIR, --plugin-dir=DIR
+                        Specify the path to a directory containing plugins.
+                        Plugins in this directory take precedence over
+                        similarly named plugins included with Hairball.
+  -p PLUGIN, --plugin=PLUGIN
+                        Use the named plugin to perform analysis. This option
+                        can be provided multiple times.
+```
 
-0. Create the virtual environment
+## Available Plugins
 
-    These examples use `~/.venv` as the virtual environment location,
-    however, feel free to use whatever you prefer.
+Below are a list of available plugins that can be used as the `-p PLUGIN_NAME` option:
 
-        virtualenv ~/.venv/hairball
+* blocks.BlockCounts
+* blocks.DeadCode
+* checks.Animation (not fully tested)
+* checks.BroadcastReceive
+* checks.SaySoundSync (not fully tested)
+* initialization.AttributeInitialization
+* initialization.VariableInitialization (not fully tested)
 
-0. Load the virtual environment (Note: you will need to run this everytime you
-open a new terminal to run the project's commands)
-
-        source ~/.venv/hairball/bin/activate
-
-0. Install the package and its dependencies in development mode
-
-        cd hairball
-        python setup.py develop
-
-# Developing Plugins
-
-## Loading Plugins
-
-The plugins for the web service are stored in the
-`hairball/hairball/plugins` folder. The association between projects
-and plugins is contained the attribute `plugins` of a project in the
-database. See the above section on `Working with the Database` for information
-on adding and removing projects. Note that both the webserver processes and the
-`process_scratch_files` processes need to be restarted whenever projects are
-modified.
-
-## Writing Plugins
-
-A plugin is a python class that inherits from the class
-`hairball.plugins.PluginBase` and defines at least a `__init__` function, a
-`_process` function and a class doc string (a comment).
-
-The classes that define plugins should be grouped by functionality into a
-single python module (`.py` file) and placed in the plugins folder. For
-example, a set of plugins dealing with scratch audio might be grouped into
-the file `audio.py`. If their class names were `SpriteVolume`, `UniqueBeats`,
-and `VolumeReset` then the plugin names would be `audio.SpriteVolume`,
-`audio.UniqueBeats` and `audio.VolumeReset` respectively.
-
-A complete example of a simple plugin, referred to as `simple.Simple` (or
-shortened as `simple` when the class name is the title-cased version of the
-module name) is as follows:
-
-### sample.py
-
-    from . import PluginBase
-
-    class Simple(PluginBase):
-        """Produces the standard 'Hello World' message."""
-
-        def __init__(self, batch):
-            super(Simple, self).__init__(name='The Simple Plugin', batch=batch)
-
-        def _process(self, scratch):
-            return 'Hello World!'
-
----
+Note: The output for each plugin is not yet completely standardized. Please
+feel free to file any issues or make improvements and send pull requests.
