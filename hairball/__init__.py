@@ -12,7 +12,7 @@ from optparse import OptionParser
 from hairball.plugins import HairballPlugin
 
 
-__version__ = '0.1a'
+__version__ = '0.1b'
 
 
 class Hairball(object):
