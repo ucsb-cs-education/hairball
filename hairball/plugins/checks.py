@@ -1,6 +1,6 @@
 """This module provides plugins used in the hairball paper."""
 
-from collections import Counter
+from collections import defaultdict, Counter
 from hairball.plugins import HairballPlugin
 
 
@@ -116,68 +116,58 @@ class BroadcastReceive(HairballPlugin):
     """Plugin that checks for proper usage of broadcast and receive blocks."""
 
     def get_receive(self, script_list):
-        messages = {}
+        """Return a list of received events contained in script_list."""
+        events = defaultdict(set)
         for script in script_list:
             if self.script_start_type(script) == self.HAT_WHEN_I_RECEIVE:
-                message = script.blocks[0].args[0].lower()
-                if message not in messages.keys():
-                    messages[message] = set()
-                messages[message].add(script)
-        return messages
+                event = script.blocks[0].args[0].lower()
+                events[event].add(script)
+        return events
 
     def analyze(self, scratch):
         all_scripts = list(self.iter_scripts(scratch))
-        results = {}
-        results[0] = set()  # sprites who broadcast variable-events
-        results[1] = set()  # message is broadcasted in dead code
-        results[2] = set()  # message is never broadcast
-        results[3] = set()  # message is never received
-        results[4] = set()  # message has parallel scripts with timing
-        results[5] = set()  # messages are broadcast in scripts that contain
-                           # other broadcasts
-        results[6] = set()  # working
-
+        results = defaultdict(set)
         broadcast = dict((x, self.get_broadcast_events(x))  # Events by script
                          for x in all_scripts)
-        receive = self.get_receive(all_scripts)
-        received_messages = set()
-        for message in receive.keys():
-            received_messages.add(message)
-            results[3].add(message)
-        # first remove all variable-event broadcast scripts
-        for script, messages in broadcast.items():
-            for message in messages:
-                if message is True:
-                    results[0].add(script.morph.name)
-                    #del message  # TODO: what was this meant to do?
-                # then remove messages that aren't received or broadcast
-                elif message in received_messages:
-                    if message in results[3]:
-                        results[3].remove(message)
+        correct = self.get_receive(all_scripts)
+        results['never broadcast'] = set(correct.keys())
+
+        for script, events in broadcast.items():
+            for event in events.keys():
+                if event is True:  # Remove dynamic broadcasts
+                    results['dynamic broadcast'].add(script.morph.name)
+                    del events[event]
+                elif event in correct:
+                    results['never broadcast'].discard(event)
                 else:
-                    results[2].add(message)
-        for message in receive.keys():
-            if message not in received_messages:
-                del receive[message]
-            if message in results[3]:
-                del receive[message]
-        # now find error 4
-        for message, scripts in receive.items():
+                    results['never received'].add(event)
+
+        # remove events from correct dict that were never broadcast
+        for event in correct.keys():
+            if event in results['never broadcast']:
+                del correct[event]
+
+        # Find scripts that have more than one broadcast event on any possible
+        # execution path through the program
+        # TODO: Permit mutually exclusive broadcasts
+        for events in broadcast.values():
+            if len(events) > 1:
+                for event in events:
+                    if event in correct:
+                        results['parallel broadcasts'].add(event)
+                        del correct[event]
+
+        # Find events that have two (or more) receivers in which one of the
+        # receivers has a "delay" block
+        for event, scripts in correct.items():
             if len(scripts) > 1:
                 for script in scripts:
                     for _, _, block in self.iter_blocks(script.blocks):
                         if block.type.flag == 't':
-                            results[4].add(message)
-        # now find error 5
-        for script, messages in broadcast.items():
-            if len(messages) > 1:
-                for message in messages:
-                    if message in receive.keys():
-                        results[5].add(message)
-        # finally, get the working messages
-        for message in receive.keys():
-            if message not in results[4] and message not in results[5]:
-                results[6].add(message)
+                            results['multiple receivers with delay'].add(event)
+                            del correct[event]
+
+        results['success'] = set(correct.keys())
         return {'broadcast': results}
 
 

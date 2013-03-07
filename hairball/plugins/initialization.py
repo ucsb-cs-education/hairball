@@ -110,7 +110,7 @@ class AttributeInitialization(HairballPlugin):
         changes['stage'] = {
             'background': self.attribute_state(scratch.stage.scripts,
                                                'costume')}
-        self.output_results(changes)
+        #self.output_results(changes)
         return {'initialized': changes}
 
 
