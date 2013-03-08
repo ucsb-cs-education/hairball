@@ -165,7 +165,8 @@ class BroadcastReceive(HairballPlugin):
                     for _, _, block in self.iter_blocks(script.blocks):
                         if block.type.flag == 't':
                             results['multiple receivers with delay'].add(event)
-                            del correct[event]
+                            if event in correct:
+                                del correct[event]
 
         results['success'] = set(correct.keys())
         return {'broadcast': results}
