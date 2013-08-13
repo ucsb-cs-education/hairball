@@ -16,6 +16,9 @@ class HairballPlugin(object):
 
     """
 
+    GREEN_FLAG = kurt.Block('when green flag clicked')
+    WHEN_I_RECEIVE = kurt.Block('when I receive')
+
     HAT_GREEN_FLAG = 0
     HAT_WHEN_I_RECEIVE = 1
     HAT_OTHER = 2  # mouse or key press
@@ -53,23 +56,28 @@ class HairballPlugin(object):
         """
         # queue the block and the depth of the block
         queue = [(block, 0) for block in block_list
-                 if isinstance(block, kurt.scripts.Block)]
+                 if isinstance(block, kurt.Block)]
         while queue:
             block, depth = queue.pop(0)
-            assert block.command
-            if block.command in ('changeVariable', 'EventHatMorph'):
+            if block.type.shape == 'hat':
+                # TODO: This conditional use to handle the changeVariable
+                # block as well so re-add that if necessary
                 yield block.type.text, depth, block
             else:
-                if block.command == 'doIfElse':
+                #if block.command == 'doIfElse':
                     # Cannot use block.type.text because it's only 'if %b'
-                    yield 'if %b else', depth, block
-                else:
-                    yield block.type.text, depth, block
+                #    yield 'if %b else', depth, block
+                #else:
+
+                # TODO: There use to be a conditional to distinguish the
+                # doIfElse block from if as the names are different, so re-add
+                # that if necessary (see above)
+                yield block.type.text, depth, block
                 for arg in block.args:
                     if hasattr(arg, '__iter__'):
                         queue[0:0] = [(x, depth + 1) for x in arg
-                                      if isinstance(x, kurt.scripts.Block)]
-                    elif isinstance(arg, kurt.scripts.Block):
+                                      if isinstance(x, kurt.Block)]
+                    elif isinstance(arg, kurt.Block):
                         queue.append((arg, depth))
 
     @staticmethod
@@ -81,19 +89,18 @@ class HairballPlugin(object):
         """
         for script in scratch.stage.scripts:
             yield script
-        for sprite in scratch.stage.sprites:
+        for sprite in scratch.sprites:
             for script in sprite.scripts:
                 yield script
 
     @staticmethod
     def script_start_type(script):
         """Return the type of block the script begins with."""
-        if script.blocks[0].command == 'EventHatMorph':
-            if script.blocks[0].args[0] == 'Scratch-StartClicked':
-                return HairballPlugin.HAT_GREEN_FLAG
-            else:
-                return HairballPlugin.HAT_WHEN_I_RECEIVE
-        elif 'EventHatMorph' in script.blocks[0].command:
+        if script.blocks[0] == HairballPlugin.GREEN_FLAG:
+            return HairballPlugin.HAT_GREEN_FLAG
+        elif script.blocks[0] == HairballPlugin.WHEN_I_RECEIVE:
+            return HairballPlugin.HAT_WHEN_I_RECEIVE
+        elif script.blocks[0].type.shape == 'hat':
             return HairballPlugin.HAT_OTHER
         else:
             return HairballPlugin.NOT_HAT
@@ -109,7 +116,7 @@ class HairballPlugin(object):
         events = Counter()
         for name, _, block in cls.iter_blocks(script.blocks):
             if 'broadcast %e' in name:
-                if isinstance(block.args[0], kurt.scripts.Block):
+                if isinstance(block.args[0], kurt.Block):
                     events[True] += 1
                 else:
                     events[block.args[0].lower()] += 1
@@ -169,7 +176,7 @@ class HairballPlugin(object):
         Returns data exactly as returned by the analyze method.
 
         """
-        if not scratch.hairball_prepared:
+        if not getattr(scratch, 'hairball_prepared', False):
             self.tag_reachable_scripts(scratch)
         return self.analyze(scratch, **kwargs)
 

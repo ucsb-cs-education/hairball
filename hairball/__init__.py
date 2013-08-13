@@ -127,7 +127,7 @@ class Hairball(object):
         # open the file once.
         for filename in sorted(scratch_files):
             print filename
-            scratch = kurt.ScratchProjectFile(filename)
+            scratch = kurt.Project.load(filename)
             for plugin in self.plugins:
                 plugin._process(scratch)  # pylint: disable-msg=W0212
 

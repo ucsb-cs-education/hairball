@@ -106,7 +106,7 @@ class AttributeInitialization(HairballPlugin):
     def analyze(self, scratch):
         """Run and return the results of the AttributeInitialization plugin."""
         changes = dict((x.name, self.sprite_changes(x)) for x in
-                       scratch.stage.sprites)
+                       scratch.sprites)
         changes['stage'] = {
             'background': self.attribute_state(scratch.stage.scripts,
                                                'costume')}
@@ -175,7 +175,7 @@ class VariableInitialization(HairballPlugin):
     def analyze(self, scratch):
         """Run and return the results of the VariableInitialization plugin."""
         variables = dict((x, self.variable_state(x.scripts, x.variables))
-                         for x in scratch.stage.sprites)
+                         for x in scratch.sprites)
         variables['global'] = self.variable_state(self.iter_scripts(scratch),
                                                   scratch.stage.variables)
         # Output for now

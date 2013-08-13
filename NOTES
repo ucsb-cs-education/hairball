@@ -47,5 +47,3 @@ HIDE_MESSAGE -> [show ""]
 [show ".+"] # <- This messsage begins the second correct
 [play until done]
 [show ""]
-
-

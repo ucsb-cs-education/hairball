@@ -28,7 +28,7 @@ setup(name=PACKAGE_NAME,
       description=('Hairball is a plugin-able framework useful for static '
                    'analysis of Scratch projects.'),
       entry_points={'console_scripts': ['hairball = hairball:main']},
-      install_requires=['kurt>=1.4.5'],
+      install_requires=['kurt>=2.0'],
       keywords='scratch static-analysis',
       license='Simplified BSD License',
       long_description=README,
