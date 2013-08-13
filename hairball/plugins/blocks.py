@@ -1,8 +1,7 @@
 """This module provides plugins for basic block statistics."""
 
 from collections import Counter
-from hairball.plugins import HairballPlugin
-
+from .plugins import HairballPlugin
 
 class BlockCounts(HairballPlugin):
 
@@ -49,9 +48,9 @@ class DeadCode(HairballPlugin):
         """
         self.total_instances += 1
         sprites = {}
-        for script in self.iter_scripts(scratch):
+        for sprite, script in self.iter_sprite_scripts(scratch):
             if not script.reachable:
-                sprites.setdefault(script.morph.name, []).append(script)
+                sprites.setdefault(sprite, []).append(script)
         if sprites:
             self.dead_code_instances += 1
             import pprint

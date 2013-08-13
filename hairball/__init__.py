@@ -8,11 +8,12 @@ projects.
 import kurt
 import os
 import sys
+from imp import load_source
 from optparse import OptionParser
-from hairball.plugins import HairballPlugin
+from .plugins import HairballPlugin
 
 
-__version__ = '0.1rc1'
+__version__ = '0.1rc2'
 
 
 class Hairball(object):
@@ -40,6 +41,10 @@ class Hairball(object):
         parser.add_option('-p', '--plugin', action='append',
                           help=('Use the named plugin to perform analysis. '
                                 'This option can be provided multiple times.'))
+        parser.add_option('-k', '--kurt-plugin', action='append',
+                          help=('Include the named file containing Kurt plugin. '
+                                'This file should contain a load_hairball method. '
+                                'This option can be provided multiple times.'))
         self.options, self.args = parser.parse_args(argv)
 
         if not self.options.plugin:
@@ -53,6 +58,12 @@ class Hairball(object):
             else:
                 parser.error('`{0}` is not a directory'
                              .format(self.options.plugin_dir))
+
+        for kurt_plugin in self.options.kurt_plugin:
+            module_name = os.path.splitext(os.path.basename(kurt_plugin))[0]
+            load_source(module_name, kurt_plugin)
+
+        self.extensions = [x.extension for x in kurt.plugin.Kurt.plugins.values()]
 
     def finalize(self):
         """Indicate that analysis is complete.
@@ -115,18 +126,19 @@ class Hairball(object):
         scratch_files = []
         while self.args:
             filename = self.args.pop()
-            # Recursively traverse directories
+            _, ext = os.path.splitext(filename)
+            # Interatively traverse directories
             if os.path.isdir(filename):
                 for temp in os.listdir(filename):
                     if temp not in ('.', '..'):
                         self.args.append(os.path.join(filename, temp))
-            elif filename.endswith('.sb') and os.path.isfile(filename):
+            elif ext in self.extensions and os.path.isfile(filename):
                 scratch_files.append(filename)
 
         # Run all the plugins on a single file at at time so we only have to
         # open the file once.
         for filename in sorted(scratch_files):
-            print filename
+            print(filename)
             scratch = kurt.Project.load(filename)
             for plugin in self.plugins:
                 plugin._process(scratch)  # pylint: disable-msg=W0212

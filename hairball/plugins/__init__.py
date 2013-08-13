@@ -16,13 +16,11 @@ class HairballPlugin(object):
 
     """
 
-    GREEN_FLAG = kurt.Block('when green flag clicked')
-    WHEN_I_RECEIVE = kurt.Block('when I receive')
-
     HAT_GREEN_FLAG = 0
     HAT_WHEN_I_RECEIVE = 1
-    HAT_OTHER = 2  # mouse or key press
-    NOT_HAT = 3
+    HAT_MOUSE = 2
+    HAT_KEY = 3
+    NO_HAT = 4
 
     BLOCKMAPPING = {
         'costume': frozenset([('switch to background %l', 'absolute'),
@@ -59,26 +57,14 @@ class HairballPlugin(object):
                  if isinstance(block, kurt.Block)]
         while queue:
             block, depth = queue.pop(0)
-            if block.type.shape == 'hat':
-                # TODO: This conditional use to handle the changeVariable
-                # block as well so re-add that if necessary
-                yield block.type.text, depth, block
-            else:
-                #if block.command == 'doIfElse':
-                    # Cannot use block.type.text because it's only 'if %b'
-                #    yield 'if %b else', depth, block
-                #else:
-
-                # TODO: There use to be a conditional to distinguish the
-                # doIfElse block from if as the names are different, so re-add
-                # that if necessary (see above)
-                yield block.type.text, depth, block
-                for arg in block.args:
-                    if hasattr(arg, '__iter__'):
-                        queue[0:0] = [(x, depth + 1) for x in arg
-                                      if isinstance(x, kurt.Block)]
-                    elif isinstance(arg, kurt.Block):
-                        queue.append((arg, depth))
+            assert block.type.text
+            yield block.type.text, depth, block
+            for arg in block.args:
+                if hasattr(arg, '__iter__'):
+                    queue[0:0] = [(x, depth + 1) for x in arg
+                                  if isinstance(x, kurt.Block)]
+                elif isinstance(arg, kurt.Block):
+                    queue.append((arg, depth))
 
     @staticmethod
     def iter_scripts(scratch):
@@ -94,16 +80,33 @@ class HairballPlugin(object):
                 yield script
 
     @staticmethod
+    def iter_sprite_scripts(scratch):
+        """A generator for all scripts contained in a scratch file.
+
+        yields stage scripts first, then scripts for each sprite
+
+        """
+
+        for script in scratch.stage.scripts:
+            yield ('Stage', script)
+        for sprite in scratch.sprites:
+            for script in sprite.scripts:
+                yield (sprite.name, script)
+
+    @staticmethod
     def script_start_type(script):
         """Return the type of block the script begins with."""
-        if script.blocks[0] == HairballPlugin.GREEN_FLAG:
+        if script[0].type.text == 'when @greenFlag clicked':
             return HairballPlugin.HAT_GREEN_FLAG
-        elif script.blocks[0] == HairballPlugin.WHEN_I_RECEIVE:
+        elif script[0].type.text == 'when I receive %s':
             return HairballPlugin.HAT_WHEN_I_RECEIVE
-        elif script.blocks[0].type.shape == 'hat':
-            return HairballPlugin.HAT_OTHER
+        elif script[0].type.text == 'when this sprite clicked':
+            return HairballPlugin.HAT_MOUSE
+        elif script[0].type.text == 'when %s key pressed':
+            return HairballPlugin.HAT_KEY
         else:
-            return HairballPlugin.NOT_HAT
+            return HairballPlugin.NO_HAT
+
 
     @classmethod
     def get_broadcast_events(cls, script):
@@ -137,7 +140,7 @@ class HairballPlugin(object):
         # Initial pass to find reachable and potentially reachable scripts
         for script in cls.iter_scripts(scratch):
             starting_type = cls.script_start_type(script)
-            if starting_type == cls.NOT_HAT:
+            if starting_type == cls.NO_HAT:
                 script.reachable = False
             elif starting_type == cls.HAT_WHEN_I_RECEIVE:
                 script.reachable = False  # Value will be updated if reachable
