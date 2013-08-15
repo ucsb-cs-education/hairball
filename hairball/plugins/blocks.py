@@ -1,7 +1,8 @@
 """This module provides plugins for basic block statistics."""
 
 from collections import Counter
-from .plugins import HairballPlugin
+from hairball.plugins import HairballPlugin
+
 
 class BlockCounts(HairballPlugin):
 

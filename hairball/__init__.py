@@ -42,8 +42,9 @@ class Hairball(object):
                           help=('Use the named plugin to perform analysis. '
                                 'This option can be provided multiple times.'))
         parser.add_option('-k', '--kurt-plugin', action='append',
-                          help=('Include the named file containing Kurt plugin. '
-                                'This file should contain a load_hairball method. '
+                          help=('Include the named file containing Kurt '
+                                'plugin. This file should contain a '
+                                'load_hairball method. '
                                 'This option can be provided multiple times.'))
         self.options, self.args = parser.parse_args(argv)
 
@@ -63,7 +64,8 @@ class Hairball(object):
             module_name = os.path.splitext(os.path.basename(kurt_plugin))[0]
             load_source(module_name, kurt_plugin)
 
-        self.extensions = [x.extension for x in kurt.plugin.Kurt.plugins.values()]
+        self.extensions = [x.extension for x in
+                           kurt.plugin.Kurt.plugins.values()]
 
     def finalize(self):
         """Indicate that analysis is complete.

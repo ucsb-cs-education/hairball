@@ -107,7 +107,6 @@ class HairballPlugin(object):
         else:
             return HairballPlugin.NO_HAT
 
-
     @classmethod
     def get_broadcast_events(cls, script):
         """Return a Counter of event-names that were broadcast.
