@@ -74,10 +74,12 @@ class HairballPlugin(object):
 
         """
         for script in scratch.stage.scripts:
-            yield script
+            if not isinstance(script, kurt.Comment):
+            	yield script
         for sprite in scratch.sprites:
             for script in sprite.scripts:
-                yield script
+            	if not isinstance(script, kurt.Comment):
+                    yield script
 
     @staticmethod
     def iter_sprite_scripts(scratch):
@@ -88,10 +90,12 @@ class HairballPlugin(object):
         """
 
         for script in scratch.stage.scripts:
-            yield ('Stage', script)
+            if not isinstance(script, kurt.Comment):
+            	yield ('Stage', script)
         for sprite in scratch.sprites:
             for script in sprite.scripts:
-                yield (sprite.name, script)
+            	if not isinstance(script, kurt.Comment):
+                    yield (sprite.name, script)
 
     @staticmethod
     def script_start_type(script):
@@ -116,8 +120,8 @@ class HairballPlugin(object):
 
         """
         events = Counter()
-        for name, _, block in cls.iter_blocks(script.blocks):
-            if 'broadcast %e' in name:
+        for name, _, block in cls.iter_blocks(script):
+            if 'broadcast %s' in name:
                 if isinstance(block.args[0], kurt.Block):
                     events[True] += 1
                 else:
@@ -138,16 +142,17 @@ class HairballPlugin(object):
         untriggered_events = {}
         # Initial pass to find reachable and potentially reachable scripts
         for script in cls.iter_scripts(scratch):
-            starting_type = cls.script_start_type(script)
-            if starting_type == cls.NO_HAT:
-                script.reachable = False
-            elif starting_type == cls.HAT_WHEN_I_RECEIVE:
-                script.reachable = False  # Value will be updated if reachable
-                message = script.blocks[0].args[0].lower()
-                untriggered_events.setdefault(message, set()).add(script)
-            else:
-                script.reachable = True
-                reachable.add(script)
+            if not isinstance(script, kurt.Comment):
+            	starting_type = cls.script_start_type(script)
+            	if starting_type == cls.NO_HAT:
+                    script.reachable = False
+            	elif starting_type == cls.HAT_WHEN_I_RECEIVE:
+                    script.reachable = False  # Value will be updated if reachable
+                    message = script[0].args[0].lower()
+                    untriggered_events.setdefault(message, set()).add(script)
+            	else:
+                    script.reachable = True
+                    reachable.add(script)
         # Expand reachable states based on broadcast events
         while reachable:
             for event in cls.get_broadcast_events(reachable.pop()):
