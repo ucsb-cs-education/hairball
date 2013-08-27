@@ -75,10 +75,10 @@ class HairballPlugin(object):
         """
         for script in scratch.stage.scripts:
             if not isinstance(script, kurt.Comment):
-            	yield script
+                yield script
         for sprite in scratch.sprites:
             for script in sprite.scripts:
-            	if not isinstance(script, kurt.Comment):
+                if not isinstance(script, kurt.Comment):
                     yield script
 
     @staticmethod
@@ -91,10 +91,10 @@ class HairballPlugin(object):
 
         for script in scratch.stage.scripts:
             if not isinstance(script, kurt.Comment):
-            	yield ('Stage', script)
+                yield ('Stage', script)
         for sprite in scratch.sprites:
             for script in sprite.scripts:
-            	if not isinstance(script, kurt.Comment):
+                if not isinstance(script, kurt.Comment):
                     yield (sprite.name, script)
 
     @staticmethod
@@ -143,14 +143,15 @@ class HairballPlugin(object):
         # Initial pass to find reachable and potentially reachable scripts
         for script in cls.iter_scripts(scratch):
             if not isinstance(script, kurt.Comment):
-            	starting_type = cls.script_start_type(script)
-            	if starting_type == cls.NO_HAT:
+                starting_type = cls.script_start_type(script)
+                if starting_type == cls.NO_HAT:
                     script.reachable = False
-            	elif starting_type == cls.HAT_WHEN_I_RECEIVE:
-                    script.reachable = False  # Value will be updated if reachable
+                elif starting_type == cls.HAT_WHEN_I_RECEIVE:
+                    # Value will be updated if reachable
+                    script.reachable = False
                     message = script[0].args[0].lower()
                     untriggered_events.setdefault(message, set()).add(script)
-            	else:
+                else:
                     script.reachable = True
                     reachable.add(script)
         # Expand reachable states based on broadcast events
