@@ -1,9 +1,4 @@
-"""Hairball
-
-Hairball  is a plugin-able framework useful for static analysis of Scratch
-projects.
-
-"""
+"""A plugin-able framework for the static analysis of Scratch projects."""
 
 import kurt
 import os
@@ -13,7 +8,7 @@ from optparse import OptionParser
 from .plugins import HairballPlugin
 
 
-__version__ = '0.1rc2'
+__version__ = '0.1rc3'
 
 
 class Hairball(object):
@@ -60,9 +55,10 @@ class Hairball(object):
                 parser.error('`{0}` is not a directory'
                              .format(self.options.plugin_dir))
 
-        for kurt_plugin in self.options.kurt_plugin:
-            module_name = os.path.splitext(os.path.basename(kurt_plugin))[0]
-            load_source(module_name, kurt_plugin)
+        if self.options.kurt_plugin:
+            for kurt_plugin in self.options.kurt_plugin:
+                module = os.path.splitext(os.path.basename(kurt_plugin))[0]
+                load_source(module, kurt_plugin)
 
         self.extensions = [x.extension for x in
                            kurt.plugin.Kurt.plugins.values()]
