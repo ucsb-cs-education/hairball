@@ -2,13 +2,13 @@
 
 from hairball.plugins import HairballPlugin
 
-class DuplicateChecks(HairballPlugin):
+class DuplicateScripts(HairballPlugin):
 
     """Plugin that keeps track of which scripts have been 
     used more than once whithin a project."""
 
     def __init__(self):
-        super(DuplicateChecks, self).__init__()
+        super(DuplicateScripts, self).__init__()
         self.total_duplicate = 0
         self.list_duplicate = []
 
