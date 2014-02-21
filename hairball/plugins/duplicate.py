@@ -20,7 +20,8 @@ class DuplicateScripts(HairballPlugin):
                 print duplicate
 
     def analyze(self, scratch):
-        """Run and return the results from the DuplicateChecks plugin."""
+        """Run and return the results from the DuplicateChecks plugin.
+        Only takes into account scripts with more than 3 blocks"""
         scripts_set = set()
         for script in self.iter_scripts(scratch):
             blocks_list = []
