@@ -61,7 +61,7 @@ class Animation(HairballPlugin):
                 return 0
         return -1
 
-    def check_animation(self, last, last_level, gen):
+    def _check_animation(self, last, last_level, gen):
         tmp_ = Counter()
         results = Counter()
         name, level, block = last, last_level, last
@@ -98,6 +98,7 @@ class Animation(HairballPlugin):
         return gen, results
 
     def analyze(self, scratch):
+        """Run and return the results from the Animation plugin."""
         results = Counter()
         for script in self.iter_scripts(scratch):
             gen = self.iter_blocks(script.blocks)
@@ -105,7 +106,7 @@ class Animation(HairballPlugin):
             level = None
             while name != '':
                 if name in self.ANIMATION:
-                    gen, count = self.check_animation(name, level, gen)
+                    gen, count = self._check_animation(name, level, gen)
                     results.update(count)
                 name, level, _ = next(gen, ('', 0, ''))
         return {'animation': results}
@@ -125,6 +126,7 @@ class BroadcastReceive(HairballPlugin):
         return events
 
     def analyze(self, scratch):
+        """Run and return the results from the BroadcastReceive plugin."""
         all_scripts = list(self.iter_scripts(scratch))
         results = defaultdict(set)
         broadcast = dict((x, self.get_broadcast_events(x))  # Events by script

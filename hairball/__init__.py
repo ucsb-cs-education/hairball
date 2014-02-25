@@ -22,6 +22,7 @@ class Hairball(object):
     """
 
     def __init__(self, argv):
+        """Initialize a Hairball instance by processing arguments."""
         self.plugins = []
         description = ('PATH can be either the path to a scratch file, or a '
                        'directory containing scratch files. Multiple PATH '

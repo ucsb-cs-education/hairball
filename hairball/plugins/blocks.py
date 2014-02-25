@@ -9,6 +9,7 @@ class BlockCounts(HairballPlugin):
     """Plugin that keeps track of how often each block is used."""
 
     def __init__(self):
+        """Initialize an instance of the BlockCounts plugin."""
         super(BlockCounts, self).__init__()
         self.blocks = Counter()
 
@@ -33,6 +34,7 @@ class DeadCode(HairballPlugin):
     """Plugin that indicates unreachable code in Scratch files."""
 
     def __init__(self):
+        """Initialize an instance of the DeadCode plugin."""
         super(DeadCode, self).__init__()
         self.total_instances = 0
         self.dead_code_instances = 0

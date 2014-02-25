@@ -88,7 +88,6 @@ class HairballPlugin(object):
         yields stage scripts first, then scripts for each sprite
 
         """
-
         for script in scratch.stage.scripts:
             if not isinstance(script, kurt.Comment):
                 yield ('Stage', script)
