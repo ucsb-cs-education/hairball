@@ -1,22 +1,29 @@
 # Hairball
 
-Hairball is a plugin-able framework useful for static analysis of Scratch projects.
+Hairball is a plugin-able framework useful for static analysis of Scratch
+projects.
 
-The paper and presentation slides for Hairball can be found at: http://cs.ucsb.edu/~bboe/p/cv#sigcse13
+The paper and presentation slides for Hairball can be found at:
+http://cs.ucsb.edu/~bboe/p/cv#sigcse13
 
-A Hairball demo web service is running and available at: http://hairball.herokuapp.com
+A Hairball demo web service is running and available at:
+http://hairball.herokuapp.com
 
 
 ## Hairball installation
 
-With a proper python environment (one which has `pip` available), installation is as simple as `pip install hairball`. `easy_install` can also be used via `easy_install hairball`.
+With a proper python environment (one which has `pip` available), installation
+is as simple as `pip install hairball`. `easy_install` can also be used via
+`easy_install hairball`.
 
 To install from source, first checkout this project and then navigate your
-command-line interface to the outer hairball directory that contains `setup.py`. Then run `python setup.py install`.
+command-line interface to the outer hairball directory that contains
+`setup.py`. Then run `python setup.py install`.
 
 ## Running Hairball
 
-Once installed, to see how to use hairball run `hairball --help`. That will produce output similar to the following:
+Once installed, to see how to use hairball run `hairball --help`. That will
+produce output similar to the following:
 
 ```
 Usage: hairball -p PLUGIN_NAME [options] PATH...
@@ -34,17 +41,24 @@ Options:
   -p PLUGIN, --plugin=PLUGIN
                         Use the named plugin to perform analysis. This option
                         can be provided multiple times.
+  -k KURT_PLUGIN, --kurt-plugin=KURT_PLUGIN
+                        Provide either a python import path (e.g, kelp.octopi)
+                        to a package/module, or the path to a python file,
+                        which will be loaded as a Kurt plugin. This option can
+                        be provided multiple times.
 ```
 
 ## Available Plugins
 
-Below are a list of available plugins that can be used as the `-p PLUGIN_NAME` option:
+Below are a list of available plugins that can be used as the `-p PLUGIN_NAME`
+option:
 
 * blocks.BlockCounts
 * blocks.DeadCode
 * checks.Animation (not fully tested)
 * checks.BroadcastReceive
 * checks.SaySoundSync (not fully tested)
+* duplicate.DuplicateScripts
 * initialization.AttributeInitialization
 * initialization.VariableInitialization (not fully tested)
 
