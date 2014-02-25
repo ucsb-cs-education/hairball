@@ -1,5 +1,6 @@
 """A plugin-able framework for the static analysis of Scratch projects."""
 
+import importlib
 import kurt
 import os
 import sys
@@ -37,10 +38,11 @@ class Hairball(object):
                           help=('Use the named plugin to perform analysis. '
                                 'This option can be provided multiple times.'))
         parser.add_option('-k', '--kurt-plugin', action='append',
-                          help=('Include the named file containing Kurt '
-                                'plugin. This file should contain a '
-                                'load_hairball method. '
-                                'This option can be provided multiple times.'))
+                          help=('Provide either a python import path (e.g, '
+                                'kelp.octopi) to a package/module, or the path'
+                                ' to a python file, which will be loaded as a '
+                                'Kurt plugin. This option can be provided '
+                                'multiple times.'))
         self.options, self.args = parser.parse_args(argv)
 
         if not self.options.plugin:
@@ -57,8 +59,20 @@ class Hairball(object):
 
         if self.options.kurt_plugin:
             for kurt_plugin in self.options.kurt_plugin:
-                module = os.path.splitext(os.path.basename(kurt_plugin))[0]
-                load_source(module, kurt_plugin)
+                failure = False
+                if kurt_plugin.endswith('.py') and os.path.isfile(kurt_plugin):
+                    module = os.path.splitext(os.path.basename(kurt_plugin))[0]
+                    try:
+                        load_source(module, kurt_plugin)
+                    except Exception:
+                        failure = True
+                else:
+                    try:
+                        importlib.import_module(kurt_plugin)
+                    except ImportError:
+                        failure = True
+                if failure:
+                    print('Could not load Kurt plugin: {}'.format(kurt_plugin))
 
         self.extensions = [x.extension for x in
                            kurt.plugin.Kurt.plugins.values()]
@@ -121,21 +135,30 @@ class Hairball(object):
 
     def process(self):
         """Start the analysis."""
-        scratch_files = []
-        while self.args:
-            filename = self.args.pop()
-            _, ext = os.path.splitext(filename)
-            # Interatively traverse directories
-            if os.path.isdir(filename):
-                for temp in os.listdir(filename):
-                    if temp not in ('.', '..'):
-                        self.args.append(os.path.join(filename, temp))
-            elif ext in self.extensions and os.path.isfile(filename):
-                scratch_files.append(filename)
+        def add_file(filename):
+            return os.path.splitext(filename)[1] in self.extensions
 
-        # Run all the plugins on a single file at at time so we only have to
+        hairball_files = []
+        while self.args:
+            arg_path = self.args.pop()
+            if os.path.isdir(arg_path):
+                tmp_files = []
+                for path, _, files in os.walk(arg_path):
+                    for filename in files:
+                        if add_file(filename):
+                            tmp_files.append(os.path.join(path, filename))
+                if not tmp_files:
+                    print('No files found in {}'.format(arg_path))
+                hairball_files.extend(tmp_files)
+            elif add_file(arg_path):
+                hairball_files.append(arg_path)
+            else:
+                print('Invalid file {}'.format(arg_path))
+                print('Did you forget to load a Kurt plugin (-k)?')
+
+        # Run all the plugins on a single file at a time so we only have to
         # open the file once.
-        for filename in sorted(scratch_files):
+        for filename in sorted(hairball_files):
             print(filename)
             scratch = kurt.Project.load(filename)
             for plugin in self.plugins:
