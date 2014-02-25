@@ -16,8 +16,8 @@ class BlockCounts(HairballPlugin):
     def finalize(self):
         """Output the aggregate block count results."""
         for name, count in sorted(self.blocks.items(), key=lambda x: x[1]):
-            print('{0:3} {1}'.format(count, name))
-        print('{0:3} total'.format(sum(self.blocks.values())))
+            print('{:3} {}'.format(count, name))
+        print('{:3} total'.format(sum(self.blocks.values())))
 
     def analyze(self, scratch):
         """Run and return the results from the BlockCounts plugin."""
@@ -66,5 +66,5 @@ class DeadCode(HairballPlugin):
     def finalize(self):
         """Output the number of instances that contained dead code."""
         if self.total_instances > 1:
-            print('{0} of {1} instances contained dead code.'
+            print('{} of {} instances contained dead code.'
                   .format(self.dead_code_instances, self.total_instances))

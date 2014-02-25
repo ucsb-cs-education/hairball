@@ -29,7 +29,7 @@ class Hairball(object):
                        'arguments can be provided.')
         parser = OptionParser(usage='%prog -p PLUGIN_NAME [options] PATH...',
                               description=description,
-                              version='%prog {0}'.format(__version__))
+                              version='%prog {}'.format(__version__))
         parser.add_option('-d', '--plugin-dir', metavar='DIR',
                           help=('Specify the path to a directory containing '
                                 'plugins. Plugins in this directory take '
@@ -55,7 +55,7 @@ class Hairball(object):
             if os.path.isdir(self.options.plugin_dir):
                 sys.path.append(self.options.plugin_dir)
             else:
-                parser.error('`{0}` is not a directory'
+                parser.error('{} is not a directory'
                              .format(self.options.plugin_dir))
 
         if self.options.kurt_plugin:
@@ -109,7 +109,7 @@ class Hairball(object):
             plugin = None
             for package in (None, 'hairball.plugins'):
                 if package:
-                    module_name = '{0}.{1}'.format(package, module_name)
+                    module_name = '{}.{}'.format(package, module_name)
                 try:
                     module = __import__(module_name, fromlist=[class_name])
                     # Initializes the plugin by calling its constructor
@@ -117,9 +117,8 @@ class Hairball(object):
 
                     # Verify plugin is of the correct class
                     if not isinstance(plugin, HairballPlugin):
-                        sys.stderr.write('Invalid type found for plugin `{0}` '
-                                         '{1}\n'.format(plugin_name,
-                                                        type(plugin)))
+                        sys.stderr.write('Invalid type for plugin {}: {}\n'
+                                         .format(plugin_name, type(plugin)))
                         plugin = None
                     else:
                         break
@@ -128,8 +127,7 @@ class Hairball(object):
             if plugin:
                 self.plugins.append(plugin)
             else:
-                sys.stderr.write('Cannot find plugin `{0}`\n'
-                                 .format(plugin_name))
+                sys.stderr.write('Cannot find plugin {}\n'.format(plugin_name))
         if not self.plugins:
             sys.stderr.write('No plugins loaded. Goodbye!\n')
             sys.exit(1)
@@ -167,7 +165,7 @@ class Hairball(object):
 
 
 def main():
-    """The entrypoint for the `hairball` command installed via setup.py."""
+    """The entrypoint for the hairball command installed via setup.py."""
     hairball = Hairball(sys.argv[1:])
     hairball.initialize_plugins()
     hairball.process()

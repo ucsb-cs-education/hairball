@@ -4,9 +4,9 @@ from hairball.plugins import HairballPlugin
 
 
 def partition_scripts(scripts, start_type):
-    """Return two lists of scripts out of the original `scripts` list.
+    """Return two lists of scripts out of the original scripts list.
 
-    Scripts that begin with a `start_type` block are returned first. All other
+    Scripts that begin with a 'start_type' block are returned first. All other
     scripts are returned second.
 
     """
@@ -43,7 +43,7 @@ class AttributeInitialization(HairballPlugin):
     def attribute_state(cls, scripts, attribute):
         """Return the state of the scripts for the given attribute.
 
-        If there is more than one `when green flag clicked` script and they
+        If there is more than one 'when green flag clicked' script and they
         both modify the attribute, then the attribute is considered to not be
         initialized.
 
@@ -92,7 +92,7 @@ class AttributeInitialization(HairballPlugin):
 
         """
         print(' '.join(cls.ATTRIBUTES))
-        format_strs = ['{{{0}!s:^{1}}}'.format(x, len(x)) for x in
+        format_strs = ['{{{}!s:^{}}}'.format(x, len(x)) for x in
                        cls.ATTRIBUTES]
         print(' '.join(format_strs).format(**cls.attribute_result(sprites)))
 
@@ -129,7 +129,7 @@ class VariableInitialization(HairballPlugin):
         The state is determined based on the scripts passed in via the scripts
         parameter.
 
-        If there is more than one `when green flag clicked` script and they
+        If there is more than one 'when green flag clicked' script and they
         both modify the attribute, then the attribute is considered to not be
         initialized.
 

@@ -114,8 +114,8 @@ class HairballPlugin(object):
     def get_broadcast_events(cls, script):
         """Return a Counter of event-names that were broadcast.
 
-        The Count will contain the key `True` if any of the broadcast blocks
-        contain a  parameter that is a variable.
+        The Count will contain the key True if any of the broadcast blocks
+        contain a parameter that is a variable.
 
         """
         events = Counter()
@@ -133,7 +133,7 @@ class HairballPlugin(object):
 
         The reachable attribute will be set false for any script that does not
         begin with a hat block. Additionally, any script that begins with a
-        `when I receive` block whose event-name doesn't appear in a
+        'when I receive' block whose event-name doesn't appear in a
         corresponding broadcast block is marked as unreachable.
 
         """
