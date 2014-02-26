@@ -7,6 +7,7 @@ import importlib
 import kurt
 import os
 import sys
+import traceback
 from hashlib import sha1
 from imp import load_source
 from optparse import OptionParser
@@ -235,7 +236,12 @@ class Hairball(object):
             if self.cache:
                 scratch = self.cache.load(filename)
             else:
-                scratch = kurt.Project.load(filename)
+                try:
+                    scratch = kurt.Project.load(filename)
+                    raise Exception('Boo test')
+                except Exception:
+                    traceback.print_exc
+                    continue
             for plugin in self.plugins:
                 plugin._process(scratch)  # pylint: disable-msg=W0212
 
