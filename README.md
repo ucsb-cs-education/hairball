@@ -1,3 +1,12 @@
+## Branch Info
+
+This branch adds [cache support](#caching-support) to Hairball. It depends on a
+version of Kurt that has yet to be released. This branch will be merged to
+master and released once the appropriate Kurt version has relased:
+
+https://github.com/blob8108/kurt/pull/19
+
+
 # Hairball
 
 Hairball is a plugin-able framework useful for static analysis of Scratch
@@ -64,3 +73,15 @@ option:
 
 Note: The output for each plugin is not yet completely standardized. Please
 feel free to file any issues or make improvements and send pull requests.
+
+## Caching Support
+
+The python Kurt package unfortunately is pretty slow to parse Scratch 1.4 (and
+similar) files. To remedy this situation, Hairball has built-in support for
+caching a serialized version of the Kurt object. On subsequent passes through
+the same data you should notice a TREMENDOUS speed improvement.
+
+__Note__: At the moment the cache is unbounded, so keep an eye on your disk
+space. The cache location can be discovered by running:
+
+    python -c "import appdirs; print appdirs.user_cache_dir('Hairball', 'bboe')"

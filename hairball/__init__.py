@@ -2,18 +2,80 @@
 
 import appdirs
 import cPickle
+import errno
 import importlib
 import kurt
 import os
 import sys
-from functools import wraps
 from hashlib import sha1
 from imp import load_source
 from optparse import OptionParser
 from .plugins import HairballPlugin
 
 
-__version__ = '0.1rc3'
+__version__ = '0.1rc4'
+
+
+class KurtCache(object):
+
+    """Interface to an on-disk cache of processed Kurt objects."""
+
+    DEFAULT_CACHE_DIR = appdirs.user_cache_dir(
+        appname='Hairball', appauthor='bboe')
+
+    def __init__(self, cache_dir=DEFAULT_CACHE_DIR):
+        """Initialize the index of cached files."""
+        # Create the cache directory
+        try:
+            os.makedirs(cache_dir)
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise  # Don't continue without cache support
+        self.hashes = set()
+        self.cache_dir = cache_dir
+        # Initialize the index
+        for path, _, filenames in os.walk(cache_dir):
+            for filename in filenames:
+                if filename.endswith('.pkl'):
+                    filepath = os.path.join(path, filename)
+                    self.hashes.add(self._path_to_hash(filepath))
+
+    def _hash_to_path(self, hash):
+        return os.path.join(self.cache_dir, hash[:2], hash[2:4],
+                            hash[4:] + '.pkl')
+
+    def _path_to_hash(self, filepath):
+        tmp, last = os.path.split(filepath)
+        tmp, middle = os.path.split(tmp)
+        return '{}{}{}'.format(os.path.basename(tmp), middle,
+                               os.path.splitext(last)[0])
+
+    def load(self, filename):
+        """Optimized load and return the parsed version of filename.
+
+        Uses the on-disk parse cache if the file is located in it.
+
+        """
+        # Compute hash
+        with open(filename) as fp:
+            hash = sha1(fp.read()).hexdigest()
+        path = self._hash_to_path(hash)
+        # Return the cached file if available
+        if hash in self.hashes:
+            with open(path) as fp:
+                return cPickle.load(fp)
+        # Create the nested cache directory
+        try:
+            os.makedirs(os.path.dirname(path))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+        # Process the file and save in the cache
+        scratch = kurt.Project.load(filename)
+        with open(path, 'wb') as fp:
+            cPickle.dump(scratch, fp, cPickle.HIGHEST_PROTOCOL)
+        self.hashes.add(hash)
+        return scratch
 
 
 class Hairball(object):
@@ -25,28 +87,7 @@ class Hairball(object):
 
     """
 
-    DEFAULT_CACHE_PATH = os.path.join(
-        appdirs.user_cache_dir(appname='Hairball', appauthor='bboe'),
-        'parsed.pkl')
-
-    @staticmethod
-    def save_cache(function):
-        """Write out the Hairball instance's cache at function exit."""
-        @wraps(function)
-        def function_wrapper(instance):
-            try:
-                return function(instance)
-            finally:
-                if instance._cache is not None and \
-                        len(instance._cache) != instance._initial_cache_size:
-                    print('Saving {} items to cache'
-                          .format(len(instance._cache)))
-                    with open(Hairball.DEFAULT_CACHE_PATH, 'wb') as fp:
-                        cPickle.dump(instance._cache, fp,
-                                     cPickle.HIGHEST_PROTOCOL)
-        return function_wrapper
-
-    def __init__(self, argv):
+    def __init__(self, argv, cache=True):
         """Initialize a Hairball instance by processing arguments."""
         description = ('PATH can be either the path to a scratch file, or a '
                        'directory containing scratch files. Multiple PATH '
@@ -100,32 +141,15 @@ class Hairball(object):
                     print('Could not load Kurt plugin: {}'.format(kurt_plugin))
 
         # Initialization Data
-        self._cache = None
+        if cache is True:
+            self.cache = KurtCache()
+        elif cache:
+            self.cache = cache
+        else:
+            self.cache = False
         self.plugins = []
         self.extensions = [x.extension for x in
                            kurt.plugin.Kurt.plugins.values()]
-
-    def initialize_cache(self, filename=DEFAULT_CACHE_PATH):
-        """Initialize and load the cache of parsed Hairball files.
-
-        Attempts to create the cache directory if it does not exist.
-
-        """
-        cache_dir = os.path.dirname(filename)
-        if not os.path.isdir(cache_dir):
-            try:
-                os.makedirs(cache_dir)
-            except:
-                return  # No cache support
-        if os.path.isfile(filename):
-            with open(filename) as fp:
-                try:
-                    self._cache = cPickle.load(fp)
-                except Exception:
-                    self._cache = {}
-        else:
-            self._cache = {}
-        self._initial_cache_size = len(self._cache)
 
     def finalize(self):
         """Indicate that analysis is complete.
@@ -208,26 +232,17 @@ class Hairball(object):
         # open the file once.
         for filename in sorted(hairball_files):
             print(filename)
-            hash = None
-            if self._cache is not None:
-                with open(filename) as fp:
-                    hash = sha1(fp.read()).hexdigest()
-            if hash in self._cache:
-                scratch = self._cache[hash]
+            if self.cache:
+                scratch = self.cache.load(filename)
             else:
                 scratch = kurt.Project.load(filename)
-                if hash:
-                    self._cache[hash] = scratch
             for plugin in self.plugins:
                 plugin._process(scratch)  # pylint: disable-msg=W0212
-# @Hairball.save_cache doesn't work within the class, so decorate now.
-Hairball.process = Hairball.save_cache(Hairball.process)
 
 
 def main():
     """The entrypoint for the hairball command installed via setup.py."""
-    hairball = Hairball(sys.argv[1:])
-    hairball.initialize_cache()
+    hairball = Hairball(sys.argv[1:], cache=True)
     hairball.initialize_plugins()
     hairball.process()
     hairball.finalize()
