@@ -26,13 +26,18 @@ load-plugins=
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
-# multiple time.
+# multiple time. See also the "--disable" option for examples.
 #enable=
 
 # Disable the message, report, category or checker with the given id(s). You
-# can either give multiple identifier separated by comma (,) or put this option
-# multiple time (only on the command line, not in the configuration file where
-# it should appear only once).
+# can either give multiple identifiers separated by comma (,) or put this
+# option multiple times (only on the command line, not in the configuration
+# file where it should appear only once).You can also use "--disable=all" to
+# disable everything first and then reenable specific checks. For example, if
+# you want to run only the similarities checker, you can use "--disable=all
+# --enable=similarities". If you want to run only the classes checker, but have
+# no Warning level messages displayed, use"--disable=all --enable=classes
+# --disable=W"
 disable=I0011
 
 
@@ -42,12 +47,6 @@ disable=I0011
 # (visual studio) and html. You can also give a reporter class, eg
 # mypackage.mymodule.MyReporterClass.
 output-format=text
-
-# Include message's id in output
-include-ids=yes
-
-# Include symbolic ids of messages in output
-symbols=no
 
 # Put messages in a separate file for each module / package specified on the
 # command line instead of printing them on stdout. Reports (if any) will be
@@ -67,6 +66,10 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # Add a comment according to your evaluation note. This is used by the global
 # evaluation report (RP0004).
 comment=no
+
+# Template used to display messages. This is a python new-style format string
+# used to format the message information. See doc for all details
+#msg-template=
 
 
 [TYPECHECK]
@@ -96,7 +99,7 @@ init-import=no
 
 # A regular expression matching the beginning of the name of dummy variables
 # (i.e. not used).
-dummy-variables-rgx=_|dummy
+dummy-variables-rgx=_$|dummy
 
 # List of additional names supposed to be defined in builtins. Remember that
 # you should avoid to define new builtins when possible.
@@ -113,6 +116,16 @@ notes=FIXME,XXX,TODO
 
 # Maximum number of characters on a single line.
 max-line-length=80
+
+# Regexp for a line that is allowed to be longer than the limit.
+ignore-long-lines=^\s*(# )?<?https?://\S+>?$
+
+# Allow the body of an if to be on the same line as the test if there is no
+# else.
+single-line-if-stmt=no
+
+# List of optional constructs for which whitespace checking is disabled
+no-space-check=trailing-comma,dict-separator
 
 # Maximum number of lines in a module
 max-module-lines=1000
@@ -152,7 +165,11 @@ attr-rgx=[a-z_][a-z0-9_]{2,30}$
 argument-rgx=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression which should only match correct variable names
-variable-rgx=[a-z_][a-z0-9_]{2,30}$
+variable-rgx=([a-z_][a-z0-9_]{2,30}|fp)$
+
+# Regular expression which should only match correct attribute names in class
+# bodies
+class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$
 
 # Regular expression which should only match correct list comprehension /
 # generator expression variable names
@@ -164,9 +181,13 @@ good-names=i,j,k,ex,Run,_
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,baz,toto,tutu,tata
 
-# Regular expression which should only match functions or classes name which do
-# not require a docstring
+# Regular expression which should only match function or class names that do
+# not require a docstring.
 no-docstring-rgx=__.*__
+
+# Minimum line length for functions/classes that require docstrings, shorter
+# ones are exempt.
+docstring-min-length=2
 
 
 [SIMILARITIES]
@@ -216,7 +237,7 @@ max-locals=15
 max-returns=6
 
 # Maximum number of branch for function / method body
-max-branchs=16
+max-branches=12
 
 # Maximum number of statements in function / method body
 max-statements=50
@@ -237,7 +258,7 @@ max-public-methods=20
 [IMPORTS]
 
 # Deprecated modules which should not be used, separated by a comma
-deprecated-modules=regsub,string,TERMIOS,Bastion,rexec
+deprecated-modules=regsub,TERMIOS,Bastion,rexec
 
 # Create a graph of every (i.e. internal and external) dependencies in the
 # given file (report RP0402 must not be disabled)

@@ -1,5 +1,6 @@
 """This module provides plugins for checking initialization."""
 
+from __future__ import print_function
 from hairball.plugins import HairballPlugin
 
 

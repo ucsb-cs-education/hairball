@@ -1,4 +1,6 @@
 """This module provides plugins for basic duplicate code detection."""
+
+from __future__ import print_function
 from hairball.plugins import HairballPlugin
 
 
@@ -17,7 +19,7 @@ class DuplicateScripts(HairballPlugin):
         if self.total_duplicate > 0:
             print('{} duplicate scripts found'.format(self.total_duplicate))
             for duplicate in self.list_duplicate:
-                print duplicate
+                print(duplicate)
 
     def analyze(self, scratch):
         """Run and return the results from the DuplicateChecks plugin.

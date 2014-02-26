@@ -1,5 +1,6 @@
 """A plugin-able framework for the static analysis of Scratch projects."""
 
+from __future__ import print_function
 import appdirs
 import cPickle
 import errno
@@ -24,6 +25,14 @@ class KurtCache(object):
     DEFAULT_CACHE_DIR = appdirs.user_cache_dir(
         appname='Hairball', appauthor='bboe')
 
+    @staticmethod
+    def path_to_key(filepath):
+        """Return the sha1sum (key) belonging to the file at filepath."""
+        tmp, last = os.path.split(filepath)
+        tmp, middle = os.path.split(tmp)
+        return '{}{}{}'.format(os.path.basename(tmp), middle,
+                               os.path.splitext(last)[0])
+
     def __init__(self, cache_dir=DEFAULT_CACHE_DIR):
         """Initialize the index of cached files."""
         # Create the cache directory
@@ -39,17 +48,12 @@ class KurtCache(object):
             for filename in filenames:
                 if filename.endswith('.pkl'):
                     filepath = os.path.join(path, filename)
-                    self.hashes.add(self._path_to_hash(filepath))
+                    self.hashes.add(self.path_to_key(filepath))
 
-    def _hash_to_path(self, hash):
-        return os.path.join(self.cache_dir, hash[:2], hash[2:4],
-                            hash[4:] + '.pkl')
-
-    def _path_to_hash(self, filepath):
-        tmp, last = os.path.split(filepath)
-        tmp, middle = os.path.split(tmp)
-        return '{}{}{}'.format(os.path.basename(tmp), middle,
-                               os.path.splitext(last)[0])
+    def key_to_path(self, key):
+        """Return the fullpath to the file with sha1sum key."""
+        return os.path.join(self.cache_dir, key[:2], key[2:4],
+                            key[4:] + '.pkl')
 
     def load(self, filename):
         """Optimized load and return the parsed version of filename.
@@ -57,12 +61,12 @@ class KurtCache(object):
         Uses the on-disk parse cache if the file is located in it.
 
         """
-        # Compute hash
+        # Compute sha1 hash (key)
         with open(filename) as fp:
-            hash = sha1(fp.read()).hexdigest()
-        path = self._hash_to_path(hash)
+            key = sha1(fp.read()).hexdigest()
+        path = self.key_to_path(key)
         # Return the cached file if available
-        if hash in self.hashes:
+        if key in self.hashes:
             with open(path) as fp:
                 return cPickle.load(fp)
         # Create the nested cache directory
@@ -75,7 +79,7 @@ class KurtCache(object):
         scratch = kurt.Project.load(filename)
         with open(path, 'wb') as fp:
             cPickle.dump(scratch, fp, cPickle.HIGHEST_PROTOCOL)
-        self.hashes.add(hash)
+        self.hashes.add(key)
         return scratch
 
 
@@ -88,50 +92,42 @@ class Hairball(object):
 
     """
 
-    def __init__(self, argv, cache=True):
-        """Initialize a Hairball instance by processing arguments."""
-        description = ('PATH can be either the path to a scratch file, or a '
-                       'directory containing scratch files. Multiple PATH '
-                       'arguments can be provided.')
-        parser = OptionParser(usage='%prog -p PLUGIN_NAME [options] PATH...',
-                              description=description,
-                              version='%prog {}'.format(__version__))
-        parser.add_option('-d', '--plugin-dir', metavar='DIR',
-                          help=('Specify the path to a directory containing '
-                                'plugins. Plugins in this directory take '
-                                'precedence over similarly named plugins '
-                                'included with Hairball.'))
-        parser.add_option('-p', '--plugin', action='append',
-                          help=('Use the named plugin to perform analysis. '
-                                'This option can be provided multiple times.'))
-        parser.add_option('-k', '--kurt-plugin', action='append',
-                          help=('Provide either a python import path (e.g, '
-                                'kelp.octopi) to a package/module, or the path'
-                                ' to a python file, which will be loaded as a '
-                                'Kurt plugin. This option can be provided '
-                                'multiple times.'))
-        self.options, self.args = parser.parse_args(argv)
+    @staticmethod
+    def hairball_files(paths, extensions):
+        """Yield filepath to files with the proper extension within paths."""
+        def add_file(filename):
+            return os.path.splitext(filename)[1] in extensions
 
-        if not self.options.plugin:
-            parser.error('At least one plugin must be specified via -p.')
-        if not self.args:
-            parser.error('At least one PATH must be provided.')
-
-        if self.options.plugin_dir:
-            if os.path.isdir(self.options.plugin_dir):
-                sys.path.append(self.options.plugin_dir)
+        while paths:
+            arg_path = paths.pop()
+            if os.path.isdir(arg_path):
+                found = False
+                for path, _, files in os.walk(arg_path):
+                    for filename in sorted(files):
+                        if add_file(filename):
+                            yield os.path.join(path, filename)
+                            found = True
+                if not found:
+                    print('No files found in {}'.format(arg_path))
+            elif add_file(arg_path):
+                yield arg_path
             else:
-                parser.error('{} is not a directory'
-                             .format(self.options.plugin_dir))
+                print('Invalid file {}'.format(arg_path))
+                print('Did you forget to load a Kurt plugin (-k)?')
 
-        if self.options.kurt_plugin:
-            for kurt_plugin in self.options.kurt_plugin:
+    def __init__(self, options, paths, cache=True):
+        """Initialize a Hairball instance."""
+        self.options = options
+        self.paths = paths
+
+        if options.kurt_plugin:
+            for kurt_plugin in options.kurt_plugin:
                 failure = False
                 if kurt_plugin.endswith('.py') and os.path.isfile(kurt_plugin):
                     module = os.path.splitext(os.path.basename(kurt_plugin))[0]
                     try:
                         load_source(module, kurt_plugin)
-                    except Exception:
+                    except Exception:  # TODO: Enumerate possible exceptions
                         failure = True
                 else:
                     try:
@@ -207,31 +203,13 @@ class Hairball(object):
             sys.exit(1)
 
     def process(self):
-        """Start the analysis."""
-        def add_file(filename):
-            return os.path.splitext(filename)[1] in self.extensions
+        """Run the analysis across all files found in the given paths.
 
-        hairball_files = []
-        while self.args:
-            arg_path = self.args.pop()
-            if os.path.isdir(arg_path):
-                tmp_files = []
-                for path, _, files in os.walk(arg_path):
-                    for filename in files:
-                        if add_file(filename):
-                            tmp_files.append(os.path.join(path, filename))
-                if not tmp_files:
-                    print('No files found in {}'.format(arg_path))
-                hairball_files.extend(tmp_files)
-            elif add_file(arg_path):
-                hairball_files.append(arg_path)
-            else:
-                print('Invalid file {}'.format(arg_path))
-                print('Did you forget to load a Kurt plugin (-k)?')
+        Each file is loaded once and all plugins are run against it before
+        loading the next file.
 
-        # Run all the plugins on a single file at a time so we only have to
-        # open the file once.
-        for filename in sorted(hairball_files):
+        """
+        for filename in self.hairball_files(self.paths, self.extensions):
             print(filename)
             if self.cache:
                 scratch = self.cache.load(filename)
@@ -239,16 +217,49 @@ class Hairball(object):
                 try:
                     scratch = kurt.Project.load(filename)
                     raise Exception('Boo test')
-                except Exception:
-                    traceback.print_exc
+                except Exception:  # pylint: disable=W0703
+                    traceback.print_exc()
                     continue
             for plugin in self.plugins:
-                plugin._process(scratch)  # pylint: disable-msg=W0212
+                plugin._process(scratch)  # pylint: disable=W0212
 
 
 def main():
     """The entrypoint for the hairball command installed via setup.py."""
-    hairball = Hairball(sys.argv[1:], cache=True)
+    description = ('PATH can be either the path to a scratch file, or a '
+                   'directory containing scratch files. Multiple PATH '
+                   'arguments can be provided.')
+    parser = OptionParser(usage='%prog -p PLUGIN_NAME [options] PATH...',
+                          description=description,
+                          version='%prog {}'.format(__version__))
+    parser.add_option('-d', '--plugin-dir', metavar='DIR',
+                      help=('Specify the path to a directory containing '
+                            'plugins. Plugins in this directory take '
+                            'precedence over similarly named plugins '
+                            'included with Hairball.'))
+    parser.add_option('-p', '--plugin', action='append',
+                      help=('Use the named plugin to perform analysis. '
+                            'This option can be provided multiple times.'))
+    parser.add_option('-k', '--kurt-plugin', action='append',
+                      help=('Provide either a python import path (e.g, '
+                            'kelp.octopi) to a package/module, or the path'
+                            ' to a python file, which will be loaded as a '
+                            'Kurt plugin. This option can be provided '
+                            'multiple times.'))
+    options, args = parser.parse_args(sys.argv[1:])
+
+    if not options.plugin:
+        parser.error('At least one plugin must be specified via -p.')
+    if not args:
+        parser.error('At least one PATH must be provided.')
+
+    if options.plugin_dir:
+        if os.path.isdir(options.plugin_dir):
+            sys.path.append(options.plugin_dir)
+        else:
+            parser.error('{} is not a directory'.format(options.plugin_dir))
+
+    hairball = Hairball(options, args, cache=True)
     hairball.initialize_plugins()
     hairball.process()
     hairball.finalize()
