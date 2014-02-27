@@ -77,7 +77,9 @@ class KurtCache(object):
                 raise
         # Process the file and save in the cache
         scratch = kurt.Project.load(filename)
-        with open(path, 'wb') as fp:
+        with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT,
+                               0400), 'w') as fp:
+            # open file for writing but make it immediately read-only
             cPickle.dump(scratch, fp, cPickle.HIGHEST_PROTOCOL)
         self.hashes.add(key)
         return scratch
