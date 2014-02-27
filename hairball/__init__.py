@@ -92,30 +92,6 @@ class Hairball(object):
 
     """
 
-    @staticmethod
-    def hairball_files(paths, extensions):
-        """Yield filepath to files with the proper extension within paths."""
-        def add_file(filename):
-            return os.path.splitext(filename)[1] in extensions
-
-        while paths:
-            arg_path = paths.pop(0)
-            if os.path.isdir(arg_path):
-                found = False
-                for path, dirs, files in os.walk(arg_path):
-                    dirs.sort()  # Traverse in sorted order
-                    for filename in sorted(files):
-                        if add_file(filename):
-                            yield os.path.join(path, filename)
-                            found = True
-                if not found:
-                    print('No files found in {}'.format(arg_path))
-            elif add_file(arg_path):
-                yield arg_path
-            else:
-                print('Invalid file {}'.format(arg_path))
-                print('Did you forget to load a Kurt plugin (-k)?')
-
     def __init__(self, options, paths, cache=True):
         """Initialize a Hairball instance."""
         self.options = options
@@ -135,7 +111,7 @@ class Hairball(object):
                         importlib.import_module(kurt_plugin)
                     except ImportError:
                         failure = True
-                if failure:
+                if failure and not options.quiet:
                     print('Could not load Kurt plugin: {}'.format(kurt_plugin))
 
         # Initialization Data
@@ -148,6 +124,30 @@ class Hairball(object):
         self.plugins = []
         self.extensions = [x.extension for x in
                            kurt.plugin.Kurt.plugins.values()]
+
+    def hairball_files(self, paths, extensions):
+        """Yield filepath to files with the proper extension within paths."""
+        def add_file(filename):
+            return os.path.splitext(filename)[1] in extensions
+
+        while paths:
+            arg_path = paths.pop(0)
+            if os.path.isdir(arg_path):
+                found = False
+                for path, dirs, files in os.walk(arg_path):
+                    dirs.sort()  # Traverse in sorted order
+                    for filename in sorted(files):
+                        if add_file(filename):
+                            yield os.path.join(path, filename)
+                            found = True
+                if not found:
+                    if not self.options.quiet:
+                        print('No files found in {}'.format(arg_path))
+            elif add_file(arg_path):
+                yield arg_path
+            elif not self.options.quiet:
+                print('Invalid file {}'.format(arg_path))
+                print('Did you forget to load a Kurt plugin (-k)?')
 
     def finalize(self):
         """Indicate that analysis is complete.
@@ -211,13 +211,13 @@ class Hairball(object):
 
         """
         for filename in self.hairball_files(self.paths, self.extensions):
-            print(filename)
+            if not self.options.quiet:
+                print(filename)
             if self.cache:
                 scratch = self.cache.load(filename)
             else:
                 try:
                     scratch = kurt.Project.load(filename)
-                    raise Exception('Boo test')
                 except Exception:  # pylint: disable=W0703
                     traceback.print_exc()
                     continue
@@ -247,6 +247,9 @@ def main():
                             ' to a python file, which will be loaded as a '
                             'Kurt plugin. This option can be provided '
                             'multiple times.'))
+    parser.add_option('-q', '--quiet', action='store_true',
+                      help=('Prevent output from Hairball. Plugins may still '
+                            'produce output.'))
     options, args = parser.parse_args(sys.argv[1:])
 
     if not options.plugin:
