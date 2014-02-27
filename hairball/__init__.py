@@ -254,6 +254,8 @@ def main():
     parser.add_option('-q', '--quiet', action='store_true',
                       help=('Prevent output from Hairball. Plugins may still '
                             'produce output.'))
+    parser.add_option('-C', '--no-cache', action='store_true',
+                      help='Do not use Hairball\'s cache.', default=False)
     options, args = parser.parse_args(sys.argv[1:])
 
     if not options.plugin:
@@ -267,7 +269,7 @@ def main():
         else:
             parser.error('{} is not a directory'.format(options.plugin_dir))
 
-    hairball = Hairball(options, args, cache=True)
+    hairball = Hairball(options, args, cache=not options.no_cache)
     hairball.initialize_plugins()
     hairball.process()
     hairball.finalize()
