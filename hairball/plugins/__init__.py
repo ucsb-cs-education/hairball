@@ -177,7 +177,7 @@ class HairballPlugin(object):
         """Attribute that returns the plugin name from its docstring."""
         return self.__doc__.split('\n')[0]
 
-    def _process(self, scratch, **kwargs):
+    def _process(self, scratch, filename, **kwargs):
         """Internal hook that marks reachable scripts before calling analyze.
 
         Returns data exactly as returned by the analyze method.
@@ -185,10 +185,15 @@ class HairballPlugin(object):
         """
         if not getattr(scratch, 'hairball_prepared', False):
             self.tag_reachable_scripts(scratch)
-        return self.analyze(scratch, **kwargs)
+        return self.analyze(scratch, filename=filename, **kwargs)
 
-    def analyze(self, scratch, **kwargs):
+    def analyze(self, scratch, filename, **kwargs):
         """Perform the analysis and return the results.
+
+        :param scratch: A Kurt instance which represents the scratch file. This
+          will always be the first parameter.
+        :param filename: The path to the loaded file. This parameter will
+          always be passed by keyword (don't depend on its position).
 
         This function must be overridden by a subclass.
 

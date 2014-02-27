@@ -104,7 +104,7 @@ class AttributeInitialization(HairballPlugin):
                       (x for x in cls.ATTRIBUTES if x != 'background'))
         return retval
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results of the AttributeInitialization plugin."""
         changes = dict((x.name, self.sprite_changes(x)) for x in
                        scratch.sprites)
@@ -173,7 +173,7 @@ class VariableInitialization(HairballPlugin):
                     conditionally_set_not_modified()
         return variables
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results of the VariableInitialization plugin."""
         variables = dict((x, self.variable_state(x.scripts, x.variables))
                          for x in scratch.sprites)

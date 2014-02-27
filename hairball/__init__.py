@@ -15,7 +15,7 @@ from optparse import OptionParser
 from .plugins import HairballPlugin
 
 
-__version__ = '0.1rc4'
+__version__ = '0.2rc1'
 
 
 class KurtCache(object):
@@ -222,7 +222,9 @@ class Hairball(object):
                     traceback.print_exc()
                     continue
             for plugin in self.plugins:
-                plugin._process(scratch)  # pylint: disable=W0212
+                # pylint: disable=W0212
+                plugin._process(scratch, filename=filename)
+                # pylint: enable=W0212
 
 
 def main():
