@@ -76,7 +76,7 @@ class KurtCache(object):
             if exc.errno != errno.EEXIST:
                 raise
         # Process the file and save in the cache
-        scratch = kurt.Project.load(filename)
+        scratch = kurt.Project.load(filename)  # can fail
         with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT,
                                0400), 'w') as fp:
             # open file for writing but make it immediately read-only
@@ -215,14 +215,14 @@ class Hairball(object):
         for filename in self.hairball_files(self.paths, self.extensions):
             if not self.options.quiet:
                 print(filename)
-            if self.cache:
-                scratch = self.cache.load(filename)
-            else:
-                try:
+            try:
+                if self.cache:
+                    scratch = self.cache.load(filename)
+                else:
                     scratch = kurt.Project.load(filename)
-                except Exception:  # pylint: disable=W0703
-                    traceback.print_exc()
-                    continue
+            except Exception:  # pylint: disable=W0703
+                traceback.print_exc()
+                continue
             for plugin in self.plugins:
                 # pylint: disable=W0212
                 plugin._process(scratch, filename=filename)
