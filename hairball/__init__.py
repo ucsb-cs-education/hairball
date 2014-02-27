@@ -99,10 +99,11 @@ class Hairball(object):
             return os.path.splitext(filename)[1] in extensions
 
         while paths:
-            arg_path = paths.pop()
+            arg_path = paths.pop(0)
             if os.path.isdir(arg_path):
                 found = False
-                for path, _, files in os.walk(arg_path):
+                for path, dirs, files in os.walk(arg_path):
+                    dirs.sort()  # Traverse in sorted order
                     for filename in sorted(files):
                         if add_file(filename):
                             yield os.path.join(path, filename)
