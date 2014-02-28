@@ -82,6 +82,13 @@ class HairballPlugin(object):
                     yield script
 
     @staticmethod
+    def iter_sprites(scratch):
+        """A generator for all sprites contained in a scratch file."""
+
+        for sprite in scratch.sprites:
+            yield sprite
+
+    @staticmethod
     def iter_sprite_scripts(scratch):
         """A generator for all scripts contained in a scratch file.
 
