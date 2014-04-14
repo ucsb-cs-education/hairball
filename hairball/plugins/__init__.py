@@ -23,24 +23,24 @@ class HairballPlugin(object):
     NO_HAT = 4
 
     BLOCKMAPPING = {
-        'costume': frozenset([('switch to background %l', 'absolute'),
-                              ('next background', 'relative'),
-                              ('switch to costume %l', 'absolute'),
+        'costume': frozenset([('switch backdrop to %s', 'absolute'),
+                              ('next backdrop', 'relative'),
+                              ('switch costume to %s', 'absolute'),
                               ('next costume', 'relative')]),
-        'orientation': frozenset([('turn cw %n degrees', 'relative'),
-                                  ('turn ccw %n degrees', 'relative'),
-                                  ('point in direction %d', 'absolute'),
-                                  ('point towards %m', 'relative')]),
-        'position': frozenset([('move %n steps', 'relative'),
-                               ('go to x:%n y:%n', 'absolute'),
-                               ('go to %m', 'relative'),
-                               ('glide %n secs to x:%n y:%n', 'relative'),
-                               ('change x by %n', 'relative'),
-                               ('x position', 'absolute'),
-                               ('change y by %n', 'relative'),
-                               ('y position', 'absolute')]),
-        'size': frozenset([('change size by %n', 'relative'),
-                           ('set size to %n%', 'absolute')]),
+        'orientation': frozenset([('turn @turnRight %s degrees', 'relative'),
+                                  ('turn @turnLeft %s degrees', 'relative'),
+                                  ('point in direction %s', 'absolute'),
+                                  ('point towards %s', 'relative')]),
+        'position': frozenset([('move %s steps', 'relative'),
+                               ('go to x:%s y:%s', 'absolute'),                            
+                               ('go to %s', 'relative'),
+                               ('glide %s secs to x:%s y:%s', 'relative'),
+                               ('change x by %s', 'relative'),
+                               ('set x to %s', 'absolute'),
+                               ('change y by %s', 'relative'),
+                               ('set y to %s', 'absolute')]),
+        'size': frozenset([('change size by %s', 'relative'),
+                           ('set size to %s%%', 'absolute')]),
         'visibility': frozenset([('hide', 'absolute'),
                                  ('show', 'absolute')])}
 
@@ -80,6 +80,13 @@ class HairballPlugin(object):
             for script in sprite.scripts:
                 if not isinstance(script, kurt.Comment):
                     yield script
+
+    @staticmethod
+    def iter_sprites(scratch):
+        """A generator for all sprites contained in a scratch file."""
+
+        for sprite in scratch.sprites:
+            yield sprite
 
     @staticmethod
     def iter_sprite_scripts(scratch):
