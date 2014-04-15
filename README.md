@@ -1,12 +1,3 @@
-## Note
-
-This version adds [cache support](#caching-support) to Hairball. It depends on
-a version of Kurt that has yet to be released. It will be released once the
-appropriate Kurt version has relased:
-
-https://github.com/blob8108/kurt/pull/19
-
-
 # Hairball
 
 Hairball is a plugin-able framework useful for static analysis of Scratch

@@ -15,7 +15,7 @@ from optparse import OptionParser
 from .plugins import HairballPlugin
 
 
-__version__ = '0.2rc1'
+__version__ = '0.2'
 
 
 class KurtCache(object):
