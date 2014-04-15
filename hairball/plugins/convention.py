@@ -21,7 +21,7 @@ class SpriteNaming(HairballPlugin):
 
     def finalize(self):
         """Output the default sprite names found in the project."""
-        print("%d default sprite names found:" % self.total_default)
+        print('{} default sprite names found:'.format(self.total_default))
         for name in self.list_default:
             print(name)
 
