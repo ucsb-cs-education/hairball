@@ -89,7 +89,7 @@ class Animation(HairballPlugin):
             # allow some exceptions
             if name not in self.ANIMATION and name != '':
                 if not others:
-                    if block.type.flag != 't':
+                    if block.type.shape != 'stack':
                         last_level = level
                         (name, level, block) = next(gen, ('', 0, ''))
                         others = True
@@ -166,7 +166,7 @@ class BroadcastReceive(HairballPlugin):
             if len(scripts) > 1:
                 for script in scripts:
                     for _, _, block in self.iter_blocks(script.blocks):
-                        if block.type.flag == 't':
+                        if block.type.shape == 'stack':
                             results['multiple receivers with delay'].add(event)
                             if event in correct:
                                 del correct[event]
