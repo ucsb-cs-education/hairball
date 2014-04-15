@@ -10,7 +10,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # pylint
-output=$(pylint --rcfile=$dir/.pylintrc $dir/hairball 2> /dev/null)
+output=$(pylint $dir/hairball 2> /dev/null)
 if [ -n "$output" ]; then
     echo "--pylint--"
     echo -e "$output"

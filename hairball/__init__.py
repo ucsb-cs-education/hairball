@@ -1,5 +1,6 @@
 """A plugin-able framework for the static analysis of Scratch projects."""
 
+from __future__ import print_function
 import importlib
 import kurt
 import os
@@ -65,7 +66,7 @@ class Hairball(object):
                     module = os.path.splitext(os.path.basename(kurt_plugin))[0]
                     try:
                         load_source(module, kurt_plugin)
-                    except Exception:
+                    except Exception:  # pylint:disable=W0703
                         failure = True
                 else:
                     try:
@@ -161,7 +162,7 @@ class Hairball(object):
             print(filename)
             scratch = kurt.Project.load(filename)
             for plugin in self.plugins:
-                plugin._process(scratch)  # pylint: disable-msg=W0212
+                plugin._process(scratch)  # pylint: disable=W0212
 
 
 def main():

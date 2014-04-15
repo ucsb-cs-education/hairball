@@ -1,5 +1,6 @@
 """This module provides plugins for checking initialization."""
 
+from __future__ import print_function
 from hairball.plugins import HairballPlugin
 
 
@@ -110,7 +111,7 @@ class AttributeInitialization(HairballPlugin):
         changes['stage'] = {
             'background': self.attribute_state(scratch.stage.scripts,
                                                'costume')}
-        #self.output_results(changes)
+        # self.output_results(changes)
         return {'initialized': changes}
 
 
@@ -157,7 +158,7 @@ class VariableInitialization(HairballPlugin):
                         else:  # Multiple when green flag clicked conflict
                             # TODO: Need to allow multiple sets of a variable
                             # within the same script
-                            #print 'CONFLICT', script
+                            # print 'CONFLICT', script
                             state = cls.STATE_MODIFIED
                     elif in_zone:
                         continue  # Conservative ignore for nested absolutes

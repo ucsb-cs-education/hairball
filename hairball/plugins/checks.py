@@ -62,6 +62,7 @@ class Animation(HairballPlugin):
         return -1
 
     def _check_animation(self, last, last_level, gen):
+        """Internal helper function to check the animation."""
         tmp_ = Counter()
         results = Counter()
         name, level, block = last, last_level, last

@@ -1,27 +1,29 @@
-"""This module provides plugins for basic programming convention checks"""
+"""This module provides plugins for basic programming convention checks."""
 
+from __future__ import print_function
 from hairball.plugins import HairballPlugin
 
 
 class SpriteNaming(HairballPlugin):
 
-    """Plugin that keeps track of how often sprites default 
-       
-    names (like Sprite1, Sprite2...) are used.
-    
+    """Plugin that keeps track of how often sprites' default names are used.
+
+    E.g., Sprite1, Sprite2, ...
+
     """
 
     def __init__(self):
+        """Initialize an instance of the SpriteNaming plugin."""
         super(SpriteNaming, self).__init__()
         self.total_default = 0
         self.list_default = []
-        self.default_names = ["Sprite","Objeto"]
+        self.default_names = ['Sprite', 'Objeto']
 
     def finalize(self):
         """Output the default sprite names found in the project."""
         print("%d default sprite names found:" % self.total_default)
         for name in self.list_default:
-            print name
+            print(name)
 
     def analyze(self, scratch):
         """Run and return the results from the SpriteNaming plugin."""

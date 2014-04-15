@@ -32,7 +32,7 @@ class HairballPlugin(object):
                                   ('point in direction %s', 'absolute'),
                                   ('point towards %s', 'relative')]),
         'position': frozenset([('move %s steps', 'relative'),
-                               ('go to x:%s y:%s', 'absolute'),                            
+                               ('go to x:%s y:%s', 'absolute'),
                                ('go to %s', 'relative'),
                                ('glide %s secs to x:%s y:%s', 'relative'),
                                ('change x by %s', 'relative'),
@@ -84,7 +84,6 @@ class HairballPlugin(object):
     @staticmethod
     def iter_sprites(scratch):
         """A generator for all sprites contained in a scratch file."""
-
         for sprite in scratch.sprites:
             yield sprite
 

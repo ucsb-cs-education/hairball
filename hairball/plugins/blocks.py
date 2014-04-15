@@ -1,5 +1,6 @@
 """This module provides plugins for basic block statistics."""
 
+from __future__ import print_function
 from collections import Counter
 from hairball.plugins import HairballPlugin
 
