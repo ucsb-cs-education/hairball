@@ -21,7 +21,7 @@ class DuplicateScripts(HairballPlugin):
             for duplicate in self.list_duplicate:
                 print(duplicate)
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results from the DuplicateScripts plugin.
 
         Only takes into account scripts with more than 3 blocks.

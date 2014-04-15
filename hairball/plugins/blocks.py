@@ -20,7 +20,7 @@ class BlockCounts(HairballPlugin):
             print('{:3} {}'.format(count, name))
         print('{:3} total'.format(sum(self.blocks.values())))
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results from the BlockCounts plugin."""
         file_blocks = Counter()
         for script in self.iter_scripts(scratch):
@@ -40,7 +40,7 @@ class DeadCode(HairballPlugin):
         self.total_instances = 0
         self.dead_code_instances = 0
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results form the DeadCode plugin.
 
         The variable_event indicates that the Scratch file contains at least

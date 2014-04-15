@@ -25,7 +25,7 @@ class SpriteNaming(HairballPlugin):
         for name in self.list_default:
             print(name)
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results from the SpriteNaming plugin."""
         for sprite in self.iter_sprites(scratch):
             for default in self.default_names:

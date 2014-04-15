@@ -98,7 +98,7 @@ class Animation(HairballPlugin):
             results[count] += 1
         return gen, results
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results from the Animation plugin."""
         results = Counter()
         for script in self.iter_scripts(scratch):
@@ -126,7 +126,7 @@ class BroadcastReceive(HairballPlugin):
                 events[event].add(script)
         return events
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Run and return the results from the BroadcastReceive plugin."""
         all_scripts = list(self.iter_scripts(scratch))
         results = defaultdict(set)
@@ -200,7 +200,7 @@ class SaySoundSync(HairballPlugin):
         """Return True if the string is empty, or only whitespace."""
         return not word or word.isspace()
 
-    def analyze(self, scratch):
+    def analyze(self, scratch, **kwargs):
         """Categorize instances of attempted say and sound synchronization."""
         errors = Counter()
         for script in self.iter_scripts(scratch):
