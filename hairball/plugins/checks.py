@@ -12,16 +12,16 @@ class Animation(HairballPlugin):
 
     """
 
-    COSTUME = frozenset(['switch to costume %l', 'next costume'])
-    LOOP = frozenset(['repeat %n', 'repeat until %b', 'forever',
-                      'forever if %b'])
-    MOTION = frozenset(['change y by %n', 'change x by %n',
-                        'glide %n secs to x:%n y:%n',
-                        'move %n steps', 'go to x:%n y:%n'])
-    ROTATE = frozenset(['turn cw %n degrees', 'turn ccw %n degrees',
-                        'point in direction %d'])
-    SIZE = frozenset(['change size by %n', 'set size to %n%'])
-    TIMING = frozenset(['wait %n secs', 'glide %n secs to x:%n y:%n'])
+    COSTUME = frozenset(['switch to costume %s', 'next costume'])
+    LOOP = frozenset(['repeat %s', 'repeat until %s%s', 'forever',
+                      'forever if %s%s'])
+    MOTION = frozenset(['change y by %s', 'change x by %s',
+                        'glide %s secs to x:%s y:%s',
+                        'move %s steps', 'go to x:%s y:%s'])
+    ROTATE = frozenset(['turn cw %s degrees', 'turn ccw %s degrees',
+                        'point in direction %s'])
+    SIZE = frozenset(['change size by %s', 'set size to %s%%'])
+    TIMING = frozenset(['wait %s secs', 'glide %s secs to x:%s y:%s'])
     ANIMATION = COSTUME | LOOP | MOTION | ROTATE | SIZE | TIMING
 
     @staticmethod
@@ -192,7 +192,7 @@ class SaySoundSync(HairballPlugin):
     HACKISH = 2
 
     SAY_THINK = ('say %s', 'think %s')
-    SAY_THINK_DURATION = ('say %s for %n secs', 'think %s for %n secs')
+    SAY_THINK_DURATION = ('say %s for %s secs', 'think %s for %s secs')
     ALL_SAY_THINK = SAY_THINK + SAY_THINK_DURATION
 
     @staticmethod
@@ -209,14 +209,14 @@ class SaySoundSync(HairballPlugin):
             for name, depth, block in gen:
                 if prev_depth == depth:
                     if prev_name in self.SAY_THINK:
-                        if name == 'play sound %S until done':
+                        if name == 'play sound %s until done':
                             if not self.is_blank(prev_block.args[0]):
                                 errors += self.check(gen)
                         # TODO: What about play sound?
                     elif prev_name in self.SAY_THINK_DURATION and \
-                            'play sound %S' in name:
+                            'play sound %s' in name:
                         errors['1'] += 1
-                    elif prev_name == 'play sound %S':
+                    elif prev_name == 'play sound %s':
                         if name in self.SAY_THINK:
                             errors[self.INCORRECT] += 1
                         elif name in self.SAY_THINK_DURATION:
@@ -224,7 +224,7 @@ class SaySoundSync(HairballPlugin):
                                 errors[self.ERROR] += 1
                             else:
                                 errors[self.HACKISH] += 1
-                    elif prev_name == 'play sound %S until done' and \
+                    elif prev_name == 'play sound %s until done' and \
                             name in self.ALL_SAY_THINK:
                         if not self.is_blank(block.args[0]):
                             errors[self.INCORRECT] += 1
@@ -252,7 +252,7 @@ class SaySoundSync(HairballPlugin):
                 retval[self.CORRECT] += 1
             else:
                 name, _, block = next(gen, ('', 0, ''))
-                if name == 'play sound %S until done':
+                if name == 'play sound %s until done':
                     # Increment the correct count because we have at least
                     # one successful instance
                     retval[self.CORRECT] += 1

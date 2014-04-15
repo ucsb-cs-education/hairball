@@ -57,7 +57,7 @@ class AttributeInitialization(HairballPlugin):
         for script in green_flag:
             in_zone = True
             for name, level, _ in cls.iter_blocks(script.blocks):
-                if name == 'broadcast %e and wait':
+                if name == 'broadcast %s and wait':
                     # TODO: Follow the broadcast and wait scripts that occur in
                     # the initialization zone
                     in_zone = False
@@ -146,9 +146,9 @@ class VariableInitialization(HairballPlugin):
         for script in green_flag:
             in_zone = True
             for name, level, block in cls.iter_blocks(script.blocks):
-                if name == 'broadcast %e and wait':
+                if name == 'broadcast %s and wait':
                     in_zone = False
-                if name == 'set %v to %s':
+                if name == 'set %s effect to %s':
                     state = variables.get(block.args[0], None)
                     if state is None:
                         continue  # Not a variable we care about
@@ -165,11 +165,11 @@ class VariableInitialization(HairballPlugin):
                     elif state == cls.STATE_NOT_MODIFIED:
                         state = cls.STATE_MODIFIED
                     variables[block.args[0]] = state
-                elif name == 'change %v by %n':
+                elif name == 'change %s effect by %s':
                     conditionally_set_not_modified()
         for script in other:
             for name, _, block in cls.iter_blocks(script.blocks):
-                if name in ('change %v by %n', 'set %v to %s'):
+                if name in ('change %s effect by %s', 'set %s effect to %s'):
                     conditionally_set_not_modified()
         return variables
 
