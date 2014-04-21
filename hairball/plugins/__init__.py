@@ -143,6 +143,9 @@ class HairballPlugin(object):
         corresponding broadcast block is marked as unreachable.
 
         """
+        if getattr(scratch, 'hairball_prepared', False):  # Only process once
+            return
+
         reachable = set()
         untriggered_events = {}
         # Initial pass to find reachable and potentially reachable scripts
@@ -189,8 +192,7 @@ class HairballPlugin(object):
         Returns data exactly as returned by the analyze method.
 
         """
-        if not getattr(scratch, 'hairball_prepared', False):
-            self.tag_reachable_scripts(scratch)
+        self.tag_reachable_scripts(scratch)
         return self.analyze(scratch, filename=filename, **kwargs)
 
     def analyze(self, scratch, filename, **kwargs):
