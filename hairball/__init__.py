@@ -67,8 +67,14 @@ class KurtCache(object):
         path = self.key_to_path(key)
         # Return the cached file if available
         if key in self.hashes:
-            with open(path) as fp:
-                return cPickle.load(fp)
+            try:
+                with open(path) as fp:
+                    return cPickle.load(fp)
+            except EOFError:
+                os.unlink(path)
+                self.hashes.remove(key)
+            except IOError:
+                self.hashes.remove(key)
         # Create the nested cache directory
         try:
             os.makedirs(os.path.dirname(path))
