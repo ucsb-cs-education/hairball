@@ -4,16 +4,17 @@ from __future__ import print_function
 from hairball.plugins import HairballPlugin
 
 
-def partition_scripts(scripts, start_type):
-    """Return two lists of scripts out of the original scripts list.
+def partition_scripts(scripts, start_type1, start_type2):
+    """Return two lists of scripts out of the original `scripts` list.
 
-    Scripts that begin with a 'start_type' block are returned first. All other
-    scripts are returned second.
+    Scripts that begin with a `start_type1` or `start_type2` blocks 
+    are returned first. All other scripts are returned second.
 
     """
     match, other = [], []
     for script in scripts:
-        if HairballPlugin.script_start_type(script) == start_type:
+        if (HairballPlugin.script_start_type(script) == start_type1 or 
+            HairballPlugin.script_start_type(script) == start_type2):
             match.append(script)
         else:
             other.append(script)
@@ -49,7 +50,7 @@ class AttributeInitialization(HairballPlugin):
         initialized.
 
         """
-        green_flag, other = partition_scripts(scripts, cls.HAT_GREEN_FLAG)
+        green_flag, other = partition_scripts(scripts, cls.HAT_GREEN_FLAG, cls.HAT_CLONE)
         block_set = cls.BLOCKMAPPING[attribute]
         state = cls.STATE_NOT_MODIFIED
         # TODO: Any regular broadcast blocks encountered in the initialization
